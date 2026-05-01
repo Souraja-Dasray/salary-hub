@@ -1,0 +1,15 @@
+# Netlify must serve the Vite *build* output, not the repo root — otherwise you get a white screen
+# (source index.html references /main.jsx which does not exist in production).
+
+[build]
+  command = "npm run build"
+  publish = "dist"
+
+[build.environment]
+  NODE_VERSION = "20"
+
+# SPA fallback (harmless for this single-page app; helps if you add client-side routes later)
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
