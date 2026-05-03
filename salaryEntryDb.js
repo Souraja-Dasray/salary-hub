@@ -30,6 +30,7 @@ export function rowToEntry(row) {
     esopNote: m.esop_note ?? "",
     benefits: Array.isArray(m.benefits) ? m.benefits : [],
     notes: m.notes ?? "",
+    gender: typeof m.gender === "string" ? m.gender : "",
   };
 }
 
@@ -63,6 +64,7 @@ export function submittedDataToRow(data) {
       notes: data.notes || "",
       variable_type: data.variableType || "percentage",
       variable_percent: data.variablePercent ?? "",
+      gender: data.gender || "",
     },
   };
 }
