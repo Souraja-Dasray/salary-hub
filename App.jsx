@@ -11,6 +11,26 @@ const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 const supabase =
   supabaseUrl && supabaseAnonKey ? createClient(supabaseUrl, supabaseAnonKey) : null;
 
+/** Google Form URL — set `VITE_FEEDBACK_FORM_URL` in `.env`; otherwise Feedback opens a mail draft */
+const feedbackFormUrl =
+  typeof import.meta.env.VITE_FEEDBACK_FORM_URL === "string"
+    ? import.meta.env.VITE_FEEDBACK_FORM_URL.trim()
+    : "";
+
+const FEEDBACK_MAILTO =
+  "mailto:?subject=" +
+  encodeURIComponent("Salary Hub feedback") +
+  "&body=" +
+  encodeURIComponent("What would you improve?\n\n");
+
+function feedbackHref() {
+  return feedbackFormUrl || FEEDBACK_MAILTO;
+}
+
+function feedbackOpensInNewTab() {
+  return /^https?:\/\//i.test(feedbackFormUrl);
+}
+
 /* ──────────────────────────────────────────────────────────────
    FONTS
 ────────────────────────────────────────────────────────────── */
@@ -55,6 +75,7 @@ function tokens(dark) {
 ────────────────────────────────────────────────────────────── */
 const COMPANIES = [
   "Infosys","TCS","Wipro","HCL","Cognizant","Capgemini","Accenture","IBM India",
+  "Uber","Atlassian","Gojek","Stripe","Rubrik","Tower Research Capital","Coinbase","NAVI",
   "Google India","Microsoft India","Amazon India","Meta India","Apple India",
   "Adobe India","Salesforce","SAP India","Oracle India","Zepto","Swiggy","Zomato",
   "Meesho","Razorpay","PhonePe","CRED","BharatPe","Groww","Zerodha","Paytm",
@@ -143,6 +164,39 @@ const SEED = [
   { id:10, company:"Infosys",       role:"Senior Software Engineer (SDE-3)",level:"SSE",industry:"IT Services",base:1800000,variable:180000,joining:0,joiningClawback:false,joiningClawbackMonths:"12",retention:0,retentionClawback:false,retentionClawbackMonths:"12",hasEquity:false,equityType:"",esopGrants:0,esopValue:0,vestingSchedule:"",variableNote:"",esopNote:"",benefits:["commute","insurance","food"],yoe:5,location:"Bengaluru",notes:"",date:"2026-04-05"},
   { id:11, company:"CRED",          role:"Senior UX Designer",        level:"L4",     industry:"Fintech",  base:2600000,variable:260000,joining:200000,joiningClawback:false,joiningClawbackMonths:"12",retention:0,retentionClawback:false,retentionClawbackMonths:"12",hasEquity:true,equityType:"ESOP",esopGrants:2000000,esopValue:500000,vestingSchedule:"1-yr cliff, 4-yr vest",variableNote:"",esopNote:"",benefits:["food","wellness","insurance","gym"],yoe:3,location:"Bengaluru",notes:"",date:"2026-04-02"},
   { id:12, company:"Amazon India",  role:"Software Engineer (SDE-2)", level:"SDE-2",  industry:"Big Tech", base:3900000,variable:390000,joining:0,joiningClawback:false,joiningClawbackMonths:"12",retention:0,retentionClawback:false,retentionClawbackMonths:"12",hasEquity:true,equityType:"RSU",esopGrants:3200000,esopValue:800000,vestingSchedule:"1-yr cliff, 4-yr vest",variableNote:"",esopNote:"",benefits:["food","gym","insurance","learning","wfh"],yoe:4,location:"Bengaluru",notes:"",date:"2026-03-30"},
+  { id:13, company:"Uber", role:"Software Engineer (SDE-2)", level:"L4", industry:"Big Tech",
+    base:4460000, variable:600000, joining:800000, joiningClawback:false, joiningClawbackMonths:"12",
+    retention:0, retentionClawback:false, retentionClawbackMonths:"12",
+    hasEquity:true, equityType:"RSU", esopGrants:5800000, esopValue:1450000,
+    vestingSchedule:"4-yr vest (equal)",
+    variableNote:"Target ₹6L at 100%; max ₹12L stated.",
+    esopNote:"~$79k USD RSU grant; ~₹14.5L/yr India value @ ~25% annual vest.",
+    benefits:["food","insurance","wellness","phone"],
+    yoe:4, location:"Bengaluru",
+    notes:"Source: anonymous survey. YoE 3.5 yrs (shown as 4); prior exp product-based. Fixed ₹44.6L (₹42L base + ~₹2.6L PF). Sign-on ₹5L + relocation ₹3L (combined in Joining). Gratuity ~₹1.1L. First-year TC reported ~₹71L; steady-state ~₹66L+ from year 2. Prior role TC ~₹28L. Perks: ~₹7.5L medical, $50/mo Uber credits, ₹3k/mo mobile / device program, ₹4.8k/mo wellness, 17% ride discount, onsite food. City not specified — defaulted to Bengaluru.",
+    date:"2026-05-01" },
+
+  { id:14, company:"Atlassian", role:"Software Engineer (SDE-2)", level:"P4", industry:"SaaS", base:3700000, variable:350000, joining:0, joiningClawback:false, joiningClawbackMonths:"12", retention:0, retentionClawback:false, retentionClawbackMonths:"12", hasEquity:true, equityType:"RSU", esopGrants:6720000, esopValue:1680000, vestingSchedule:"1-yr cliff, 4-yr vest", variableNote:"Target bonus ₹3.5L.", esopNote:"$90k USD / 4yr; ~₹16.8L/yr annualised.", benefits:["food","insurance","learning","wellness"], yoe:4, location:"Bengaluru", notes:"Anonymous survey. YoE 3.5; prior product-based; Tier I education. Fixed ₹37L incl PF. Current TC ~₹28L. Total steady ~₹58L stated.", date:"2022-06-01" },
+
+  { id:15, company:"Amazon India", role:"Software Engineer (SDE-2)", level:"L5", industry:"Big Tech", base:3600000, variable:0, joining:2200000, joiningClawback:false, joiningClawbackMonths:"12", retention:0, retentionClawback:false, retentionClawbackMonths:"12", hasEquity:true, equityType:"RSU", esopGrants:12000000, esopValue:2500000, vestingSchedule:"Custom", variableNote:"Target bonus N/A for offer.", esopNote:"25 RSUs; vest 5%, 15%, 40%, 40%. ₹16L second-year signing noted separately (not in Joining field).", benefits:["food","insurance","commute","sodexo"], yoe:4, location:"Bengaluru", notes:"Anonymous survey. YoE 3.5; Tier 1 CS; prior product-based. Joining ₹22L Y1 + ₹16L Y2 (Y2 in notes only). Total ~₹61L amortised / 4y stated. Benefits: ₹5L medical, ₹1100/mo meal, ₹1250/mo broadband.", date:"2024-03-01" },
+
+  { id:16, company:"Gojek", role:"Senior Software Engineer (SDE-3)", level:"IC III", industry:"Startup", base:3600000, variable:700000, joining:0, joiningClawback:false, joiningClawbackMonths:"12", retention:0, retentionClawback:false, retentionClawbackMonths:"12", hasEquity:true, equityType:"RSU", esopGrants:2400000, esopValue:750000, vestingSchedule:"1-yr cliff, 4-yr vest", variableNote:"Target ₹7L; up to ~₹14L stated.", esopNote:"$40k USD / 4yr; ~₹7.5L/yr. IPO timing speculative.", benefits:["wellness","phone","learning","reloc"], yoe:4, location:"Bengaluru", notes:"Anonymous survey. Offer Q1 2021. PF + gratuity ~₹2.5L (in notes). Bachelor tier-1 CS. Total ~₹53L yearly stated.", date:"2021-03-01" },
+
+  { id:17, company:"CRED", role:"Backend Engineer (SDE-2)", level:"SDE II", industry:"Fintech", base:3800000, variable:0, joining:0, joiningClawback:false, joiningClawbackMonths:"12", retention:0, retentionClawback:false, retentionClawbackMonths:"12", hasEquity:true, equityType:"ESOP", esopGrants:13500000, esopValue:337500, vestingSchedule:"1-yr cliff, 4-yr vest", variableNote:"No separate variable; mostly fixed.", esopNote:"₹13.5L Series C grant over 4y; ~₹3.375L/yr.", benefits:["insurance","food","wellness"], yoe:4, location:"Bengaluru", notes:"Anonymous survey. Offer Q1 2021. BTech Tier 3. Total ₹41.375L / yr stated (₹38L liquid). Buyback / valuation upside noted by submitter.", date:"2021-03-01" },
+
+  { id:18, company:"Stripe", role:"Software Engineer (SDE-2)", level:"L2", industry:"Fintech", base:4400000, variable:440000, joining:1100000, joiningClawback:false, joiningClawbackMonths:"12", retention:0, retentionClawback:false, retentionClawbackMonths:"12", hasEquity:true, equityType:"RSU", esopGrants:11600000, esopValue:2900000, vestingSchedule:"1-yr cliff, 4-yr vest", variableNote:"10% of base (~₹4.4L).", esopNote:"~$35k USD / yr; ~₹29L/yr India value cited.", benefits:["insurance","wellness","food"], yoe:4, location:"Bengaluru", notes:"Anonymous survey. Offer Nov 2023. YoE 3–4y; Tier 3 BTech CS. Prior FAANG SDE1. Total ~₹77L + ₹11L one-time signing stated.", date:"2023-11-01" },
+
+  { id:19, company:"Rubrik", role:"Senior Software Engineer (SDE-3)", level:"G6", industry:"SaaS", base:4500000, variable:675000, joining:540000, joiningClawback:false, joiningClawbackMonths:"12", retention:0, retentionClawback:false, retentionClawbackMonths:"12", hasEquity:true, equityType:"RSU", esopGrants:11700000, esopValue:2435000, vestingSchedule:"4-yr vest (equal)", variableNote:"15% target (~₹6.75L).", esopNote:"3900 units ~$30/sh; 25%/yr vest.", benefits:["insurance","food","learning"], yoe:3, location:"Bengaluru", notes:"Anonymous survey. June 2024. M.Tech Tier 1; ~3y YoE. Y1 TC ~₹81.5L; steady ~₹76.1L stated.", date:"2024-06-01" },
+
+  { id:20, company:"Google India", role:"Software Engineer (SDE-2)", level:"L4", industry:"Big Tech", base:3760000, variable:564000, joining:550000, joiningClawback:false, joiningClawbackMonths:"12", retention:0, retentionClawback:false, retentionClawbackMonths:"12", hasEquity:true, equityType:"RSU", esopGrants:12200000, esopValue:3076000, vestingSchedule:"Custom", variableNote:"15% target (~₹5.64L).", esopNote:"$92k USD grant; vest 38%, 32%, 18%, 12%. PF ~₹1.8L separate.", benefits:["food","gym","insurance","learning","wfh"], yoe:4, location:"Bengaluru", notes:"Anonymous survey. Offer June 2024. Y1 ~₹79.5L; Y2 ~₹69.4L stated.", date:"2024-06-01" },
+
+  { id:21, company:"Tower Research Capital", role:"Senior Software Engineer (SDE-3)", level:"Senior", industry:"Finance / Banking", base:6700000, variable:4000000, joining:1500000, joiningClawback:false, joiningClawbackMonths:"12", retention:0, retentionClawback:false, retentionClawbackMonths:"12", hasEquity:false, equityType:"", esopGrants:0, esopValue:0, vestingSchedule:"", variableNote:"Avg bonus ~₹40L/yr stated (high variance).", esopNote:"", benefits:["insurance","food"], yoe:6, location:"Gurugram", notes:"Anonymous survey. Offer Nov 2021. ₹67L base incl PF. Y1 TC ~₹1.22 Cr; steady ~₹1.07 Cr stated. Tier 1 BTech.", date:"2021-11-04" },
+
+  { id:22, company:"Coinbase", role:"Software Engineer (SDE-2)", level:"IC4", industry:"Fintech", base:4900000, variable:250000, joining:500000, joiningClawback:false, joiningClawbackMonths:"12", retention:0, retentionClawback:false, retentionClawbackMonths:"12", hasEquity:true, equityType:"RSU", esopGrants:8600000, esopValue:2158000, vestingSchedule:"1-yr cliff, 4-yr vest", variableNote:"Performance bonus ~₹2.5L.", esopNote:"~$26k USD/yr cited; refresh multiplier possible.", benefits:["insurance","wellness","wfh"], yoe:5, location:"Remote", notes:"Anonymous survey. 2024. Prior Atlassian; YoE ~5.4y. Remote/Bengaluru. Total ~₹75L Y1 stated.", date:"2024-09-01" },
+
+  { id:23, company:"NAVI", role:"Software Engineer (SDE-2)", level:"SDE-2", industry:"Fintech", base:5200000, variable:0, joining:200000, joiningClawback:false, joiningClawbackMonths:"12", retention:0, retentionClawback:false, retentionClawbackMonths:"12", hasEquity:true, equityType:"ESOP", esopGrants:12000000, esopValue:300000, vestingSchedule:"4-yr vest (equal)", variableNote:"", esopNote:"₹12L grant total; ~₹3L/yr (25%/yr over 4y).", benefits:["insurance","food"], yoe:6, location:"Bengaluru", notes:"Anonymous survey. YoE 5.5; prior Salesforce. Total ~₹57L incl benefits stated.", date:"2024-07-01" },
+
+  { id:24, company:"Meesho", role:"Senior Software Engineer (SDE-3)", level:"SDE3", industry:"E-Commerce", base:5400000, variable:0, joining:500000, joiningClawback:false, joiningClawbackMonths:"12", retention:0, retentionClawback:false, retentionClawbackMonths:"12", hasEquity:true, equityType:"ESOP", esopGrants:30000000, esopValue:550000, vestingSchedule:"1-yr cliff, 4-yr vest", variableNote:"", esopNote:"₹30L RSU grant / 4yr vest; ~₹5.5L/yr used for CTC line to match ~₹64.5L submitter total.", benefits:["insurance","food","wellness"], yoe:6, location:"Remote", notes:"Anonymous survey. YoE 5.5; Tier 3 BTech; prior Salesforce. ₹3L+₹2L signing/relo combined in Joining. Remote.", date:"2024-08-01" },
 ];
 
 /* ──────────────────────────────────────────────────────────────
@@ -174,6 +228,63 @@ function median(arr) {
   const s = [...arr].sort((a, b) => a - b);
   const m = Math.floor(s.length / 2);
   return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2;
+}
+
+/** Case-insensitive substring match (SQL LIKE %q%) across common fields */
+function foldCase(s) {
+  return String(s ?? "").toLocaleLowerCase("en-IN");
+}
+function entryMatchesSearch(entry, queryRaw) {
+  const q = queryRaw.trim();
+  if (!q) return true;
+  const fq = foldCase(q);
+  const fields = [entry.company, entry.role, entry.location, entry.industry, entry.level];
+  return fields.some((f) => foldCase(f).includes(fq));
+}
+
+function yoeInBucket(yoe, bucket) {
+  if (bucket === "any") return true;
+  const y = Number(yoe) || 0;
+  if (bucket === "0-2") return y <= 2;
+  if (bucket === "3-5") return y >= 3 && y <= 5;
+  if (bucket === "6-8") return y >= 6 && y <= 8;
+  if (bucket === "9+") return y >= 9;
+  return true;
+}
+
+/** Resolve typed company to canonical name from dataset (exact match, else unique substring). */
+function resolveCompanyQuery(entries, raw) {
+  const q = foldCase(raw.trim());
+  if (!q) return null;
+  const canon = [...new Set(entries.map((e) => e.company))];
+  const exact = canon.find((c) => foldCase(c) === q);
+  if (exact) return exact;
+  const subs = canon.filter((c) => foldCase(c).includes(q));
+  if (subs.length === 1) return subs[0];
+  return null;
+}
+
+const KYW_FEATURED = "__featured__";
+const KYW_YOE_OPTS = [
+  { key: "any", label: "All experience" },
+  { key: "0-2", label: "0–2 yrs" },
+  { key: "3-5", label: "3–5 yrs" },
+  { key: "6-8", label: "6–8 yrs" },
+  { key: "9+", label: "9+ yrs" },
+];
+const LEVEL_CUSTOM_KYW = "__custom__";
+
+function useMediaQuery(query) {
+  const [matches, setMatches] = useState(() =>
+    typeof window !== "undefined" ? window.matchMedia(query).matches : false);
+  useEffect(() => {
+    const mq = window.matchMedia(query);
+    const on = () => setMatches(mq.matches);
+    on();
+    mq.addEventListener("change", on);
+    return () => mq.removeEventListener("change", on);
+  }, [query]);
+  return matches;
 }
 const IND_ACCENT = {
   "Big Tech":         "#FF9000",
@@ -299,7 +410,7 @@ function Autocomplete({ label, hint, options, value, onChange, placeholder }) {
   const t = useT();
   const [open, setOpen] = useState(false);
   const filtered = value.length > 0
-    ? options.filter(o => o.toLowerCase().includes(value.toLowerCase()) && o !== value).slice(0, 8)
+    ? options.filter(o => foldCase(o).includes(foldCase(value)) && o !== value).slice(0, 8)
     : [];
   return (
     <div style={{ position:"relative" }}>
@@ -457,15 +568,20 @@ const EMPTY_FORM = {
   benefits:[], notes:"",
 };
 const STEPS = ["Role","Fixed Pay","Variable","Equity","Perks","Review"];
+const LEVEL_CUSTOM = "__custom__";
 
 function SubmitForm({ onSubmit, onClose }) {
   const t = useT();
+  const narrow = useMediaQuery("(max-width: 640px)");
   const [step, setStep]   = useState(0);
   const [done, setDone]   = useState(false);
   const [form, setForm]   = useState(EMPTY_FORM);
+  const [levelCustom, setLevelCustom] = useState(false);
   const F = (k, v) => setForm(p => ({ ...p, [k]: v }));
 
   const levels = form.industry ? (IND_LEVELS[form.industry] || IND_LEVELS.default) : IND_LEVELS.default;
+  const levelSelectVal =
+    levelCustom || (form.level && !levels.includes(form.level)) ? LEVEL_CUSTOM : (levels.includes(form.level) ? form.level : "");
   const derivedVariable = form.variableType === "percentage"
     ? Math.round(parse(form.base) * (parseFloat(form.variablePercent) || 0) / 100)
     : parse(form.variable);
@@ -496,7 +612,9 @@ function SubmitForm({ onSubmit, onClose }) {
       date:      new Date().toISOString().split("T")[0],
     });
     setDone(true);
-    setTimeout(() => { onClose(); setStep(0); setForm(EMPTY_FORM); setDone(false); }, 2400);
+    setTimeout(() => {
+      onClose(); setStep(0); setForm(EMPTY_FORM); setLevelCustom(false); setDone(false);
+    }, 2400);
   }
 
   const pct = (step / (STEPS.length - 1)) * 100;
@@ -512,7 +630,7 @@ function SubmitForm({ onSubmit, onClose }) {
 
   return (
     <div onClick={e => e.target === e.currentTarget && onClose()}
-      style={{ position:"fixed", inset:0, zIndex:200, background:"rgba(0,0,0,0.55)", backdropFilter:"blur(8px)", display:"flex", alignItems:"center", justifyContent:"center", padding:16 }}>
+      style={{ position:"fixed", inset:0, zIndex:200, background:"rgba(0,0,0,0.55)", backdropFilter:"blur(8px)", display:"flex", alignItems:"center", justifyContent:"center", padding: narrow ? 8 : 16 }}>
       <div style={{ background:t.surf, border:`1px solid ${t.border}`, borderRadius:20, width:"100%", maxWidth:560, maxHeight:"92vh", overflowY:"auto", boxShadow:`0 24px 80px rgba(0,0,0,0.5)` }}>
 
         {/* Progress */}
@@ -538,7 +656,7 @@ function SubmitForm({ onSubmit, onClose }) {
           ))}
         </div>
 
-        <div style={{ padding:"24px 26px 22px" }}>
+        <div style={{ padding: narrow ? "18px 16px 16px" : "24px 26px 22px" }}>
           {done ? (
             <div style={{ textAlign:"center", padding:"48px 0" }}>
               <div style={{ fontSize:52, marginBottom:12 }}>🎉</div>
@@ -556,17 +674,29 @@ function SubmitForm({ onSubmit, onClose }) {
                 <StepHead n="1" title="Where do you work?" sub="Start typing — we'll autocomplete" />
                 <Autocomplete label="Company" placeholder="e.g. Google India, Zepto…" options={COMPANIES} value={form.company} onChange={v => F("company", v)} />
                 <Autocomplete label="Job Title" placeholder="e.g. Software Engineer (SDE-2)…" options={ROLES_RAW} value={form.role} onChange={v => F("role", v)} />
-                <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:12 }}>
-                  <Select label="Industry" value={form.industry} onChange={e => { F("industry", e.target.value); F("level", ""); }}>
+                <div style={{ display:"grid", gridTemplateColumns: narrow ? "1fr" : "1fr 1fr", gap:12 }}>
+                  <Select label="Industry" value={form.industry} onChange={e => { F("industry", e.target.value); F("level", ""); setLevelCustom(false); }}>
                     <option value="">Select…</option>
                     {INDUSTRIES.map(i => <option key={i}>{i}</option>)}
                   </Select>
-                  <Select label="Level / Band" value={form.level} onChange={e => F("level", e.target.value)}>
-                    <option value="">Select…</option>
-                    {levels.map(l => <option key={l}>{l}</option>)}
-                  </Select>
+                  <div>
+                    <Select label="Level / Band" value={levelSelectVal} onChange={e => {
+                      const v = e.target.value;
+                      if (v === LEVEL_CUSTOM) { setLevelCustom(true); F("level", ""); }
+                      else { setLevelCustom(false); F("level", v); }
+                    }}>
+                      <option value="">Select…</option>
+                      {levels.map(l => <option key={l} value={l}>{l}</option>)}
+                      <option value={LEVEL_CUSTOM}>Other (custom)…</option>
+                    </Select>
+                    {(levelCustom || (form.level && !levels.includes(form.level))) && (
+                      <div style={{ marginTop:10 }}>
+                        <Input label="Custom level / band" placeholder="e.g. E5, P8, Principal" value={form.level} onChange={e => { F("level", e.target.value); setLevelCustom(true); }} />
+                      </div>
+                    )}
+                  </div>
                 </div>
-                <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:12 }}>
+                <div style={{ display:"grid", gridTemplateColumns: narrow ? "1fr" : "1fr 1fr", gap:12 }}>
                   <Select label="City" value={form.location} onChange={e => F("location", e.target.value)}>
                     <option value="">Select…</option>
                     {CITIES.map(c => <option key={c}>{c}</option>)}
@@ -877,7 +1007,7 @@ function EntryCard({ entry, expanded, onClick }) {
 /* ──────────────────────────────────────────────────────────────
    FEED TAB
 ────────────────────────────────────────────────────────────── */
-function FeedTab({ entries }) {
+function FeedTab({ entries, omitKnowYourWorth = false }) {
   const t = useT();
   const [filter,   setFilter]   = useState("All");
   const [city,     setCity]     = useState("All");
@@ -889,10 +1019,7 @@ function FeedTab({ entries }) {
     let d = [...entries];
     if (filter !== "All") d = d.filter(e => e.industry === filter);
     if (city   !== "All") d = d.filter(e => e.location  === city);
-    if (search) {
-      const q = search.toLowerCase();
-      d = d.filter(e => e.company.toLowerCase().includes(q) || e.role.toLowerCase().includes(q) || (e.location||"").toLowerCase().includes(q));
-    }
+    if (search) d = d.filter(e => entryMatchesSearch(e, search));
     if (sort === "Newest")          d.sort((a, b) => new Date(b.date) - new Date(a.date));
     else if (sort === "Highest CTC") d.sort((a, b) => totalCTC(b) - totalCTC(a));
     else if (sort === "Lowest CTC")  d.sort((a, b) => totalCTC(a) - totalCTC(b));
@@ -913,9 +1040,10 @@ function FeedTab({ entries }) {
 
   return (
     <div>
+      {!omitKnowYourWorth && <KnowYourWorthSection entries={entries} />}
       <div style={{ background:t.surf, border:`1px solid ${t.border}`, borderRadius:14, padding:"16px 18px", marginBottom:16 }}>
         <div style={{ display:"flex", gap:10, marginBottom:12, flexWrap:"wrap" }}>
-          <input value={search} onChange={e => setSearch(e.target.value)} placeholder="🔍  Search company, role, city…"
+          <input value={search} onChange={e => setSearch(e.target.value)} placeholder="🔍  Search company, role, city, industry, level…"
             style={{ flex:"1 1 180px", background:t.surf2, border:`1.5px solid ${t.border}`, borderRadius:10, padding:"9px 14px", fontSize:13, color:t.text, outline:"none", fontFamily:"'DM Sans',sans-serif" }} />
           <select value={sort} onChange={e => setSort(e.target.value)} style={{ background:t.surf2, border:`1.5px solid ${t.border}`, borderRadius:10, padding:"9px 28px 9px 12px", fontSize:13, color:t.text, outline:"none", cursor:"pointer", fontFamily:"'DM Sans',sans-serif", appearance:"none" }}>
             {SORT_OPTS.map(o => <option key={o}>{o}</option>)}
@@ -940,10 +1068,11 @@ function FeedTab({ entries }) {
 /* ──────────────────────────────────────────────────────────────
    CHARTS TAB
 ────────────────────────────────────────────────────────────── */
-function ChartCard({ title, children }) {
+function ChartCard({ title, children, compact }) {
   const t = useT();
+  const p = compact ? "16px 14px" : "20px 22px";
   return (
-    <div style={{ background:t.surf, border:`1px solid ${t.border}`, borderRadius:14, padding:"20px 22px" }}>
+    <div style={{ background:t.surf, border:`1px solid ${t.border}`, borderRadius:14, padding:p }}>
       <div style={{ fontSize:16, fontWeight:800, color:t.text, marginBottom:16, fontFamily:"'DM Sans',sans-serif" }}>{title}</div>
       {children}
     </div>
@@ -952,7 +1081,10 @@ function ChartCard({ title, children }) {
 
 function ChartsTab({ entries }) {
   const t = useT();
-  const axis = { fontSize:10, fill:t.text3, fontFamily:"'DM Sans',sans-serif" };
+  const narrow = useMediaQuery("(max-width: 640px)");
+  const chartH1 = narrow ? 200 : 220;
+  const chartH2 = narrow ? 180 : 200;
+  const axis = { fontSize: narrow ? 9 : 10, fill:t.text3, fontFamily:"'DM Sans',sans-serif" };
 
   const byIndustry = useMemo(() => {
     const map = {};
@@ -999,8 +1131,8 @@ function ChartsTab({ entries }) {
 
   return (
     <div style={{ display:"flex", flexDirection:"column", gap:16 }}>
-      <ChartCard title="Average CTC by Industry">
-        <ResponsiveContainer width="100%" height={220}>
+      <ChartCard title="Average CTC by Industry" compact={narrow}>
+        <ResponsiveContainer width="100%" height={chartH1}>
           <BarChart data={byIndustry} barCategoryGap="30%">
             <XAxis dataKey="name" tick={axis} axisLine={false} tickLine={false} />
             <YAxis tickFormatter={formatL} tick={axis} axisLine={false} tickLine={false} width={36} />
@@ -1012,8 +1144,8 @@ function ChartsTab({ entries }) {
         </ResponsiveContainer>
       </ChartCard>
 
-      <ChartCard title="CTC vs. Experience Band">
-        <ResponsiveContainer width="100%" height={200}>
+      <ChartCard title="CTC vs. Experience Band" compact={narrow}>
+        <ResponsiveContainer width="100%" height={chartH2}>
           <BarChart data={byYoe} barCategoryGap="25%">
             <XAxis dataKey="name" tick={axis} axisLine={false} tickLine={false} />
             <YAxis tickFormatter={formatL} tick={axis} axisLine={false} tickLine={false} width={36} />
@@ -1025,11 +1157,11 @@ function ChartsTab({ entries }) {
         </ResponsiveContainer>
       </ChartCard>
 
-      <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:16 }}>
-        <ChartCard title="By Industry">
-          <ResponsiveContainer width="100%" height={200}>
+      <div style={{ display:"grid", gridTemplateColumns: narrow ? "1fr" : "1fr 1fr", gap:16 }}>
+        <ChartCard title="By Industry" compact={narrow}>
+          <ResponsiveContainer width="100%" height={chartH2}>
             <PieChart>
-              <Pie data={pie} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={70} innerRadius={32}>
+              <Pie data={pie} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={narrow ? 58 : 70} innerRadius={narrow ? 26 : 32}>
                 {pie.map((_, i) => <Cell key={i} fill={accent(pie[i].name)} />)}
               </Pie>
               <Legend wrapperStyle={{ fontSize:10, fontFamily:"'DM Sans',sans-serif", color:t.text2 }} />
@@ -1037,11 +1169,11 @@ function ChartsTab({ entries }) {
             </PieChart>
           </ResponsiveContainer>
         </ChartCard>
-        <ChartCard title="Avg CTC by City">
-          <ResponsiveContainer width="100%" height={200}>
+        <ChartCard title="Avg CTC by City" compact={narrow}>
+          <ResponsiveContainer width="100%" height={chartH2}>
             <BarChart data={byCity} layout="vertical" barCategoryGap="25%">
               <XAxis type="number" tickFormatter={formatL} tick={axis} axisLine={false} tickLine={false} />
-              <YAxis type="category" dataKey="name" tick={{ ...axis, fill:t.text2 }} axisLine={false} tickLine={false} width={72} />
+              <YAxis type="category" dataKey="name" tick={{ ...axis, fill:t.text2 }} axisLine={false} tickLine={false} width={narrow ? 64 : 72} />
               <Tooltip content={<CTip />} cursor={{ fill:`${t.orange}10` }} />
               <Bar dataKey="avg" name="Avg CTC" fill={t.orange} radius={[0,6,6,0]} />
             </BarChart>
@@ -1057,6 +1189,7 @@ function ChartsTab({ entries }) {
 ────────────────────────────────────────────────────────────── */
 function LeaderboardTab({ entries }) {
   const t = useT();
+  const narrow = useMediaQuery("(max-width: 640px)");
   const [metric, setMetric] = useState("avg");
   const medals = ["🥇","🥈","🥉"];
   const METRICS = [{key:"avg",l:"Avg CTC"},{key:"median",l:"Median"},{key:"maxCTC",l:"Max CTC"},{key:"avgBase",l:"Avg Base"}];
@@ -1092,7 +1225,7 @@ function LeaderboardTab({ entries }) {
       </div>
 
       {/* Podium */}
-      <div style={{ display:"grid", gridTemplateColumns:"repeat(3,1fr)", gap:12 }}>
+      <div style={{ display:"grid", gridTemplateColumns: narrow ? "1fr" : "repeat(3, 1fr)", gap:12 }}>
         {stats.slice(0,3).map((c,i) => {
           const ac = accent(c.industry);
           return (
@@ -1140,6 +1273,597 @@ function LeaderboardTab({ entries }) {
 }
 
 /* ──────────────────────────────────────────────────────────────
+   DESKTOP SIDE PANELS (Feed dashboard: charts | feed | leaderboard)
+────────────────────────────────────────────────────────────── */
+const LB_METRICS = [
+  { key: "avg", l: "Avg" },
+  { key: "median", l: "Med" },
+  { key: "maxCTC", l: "Max" },
+  { key: "avgBase", l: "Base" },
+];
+
+function LeaderboardSidePanel({ entries }) {
+  const t = useT();
+  const [metric, setMetric] = useState("avg");
+  const stats = useMemo(() => {
+    const map = {};
+    entries.forEach((e) => {
+      if (!map[e.company]) map[e.company] = { company: e.company, industry: e.industry, totals: [], bases: [] };
+      map[e.company].totals.push(totalCTC(e));
+      map[e.company].bases.push(e.base || 0);
+    });
+    return Object.values(map)
+      .map((c) => ({
+        company: c.company,
+        industry: c.industry,
+        avg: Math.round(c.totals.reduce((a, b) => a + b, 0) / c.totals.length),
+        median: Math.round(median(c.totals)),
+        maxCTC: Math.max(...c.totals),
+        avgBase: Math.round(c.bases.reduce((a, b) => a + b, 0) / c.bases.length),
+      }))
+      .sort((a, b) => b[metric] - a[metric]);
+  }, [entries, metric]);
+  const maxVal = stats[0]?.[metric] || 1;
+
+  return (
+    <div
+      style={{
+        background: t.surf,
+        border: `1px solid ${t.border}`,
+        borderRadius: 12,
+        padding: 12,
+        display: "flex",
+        flexDirection: "column",
+        gap: 10,
+      }}
+    >
+      <div style={{ fontSize: 10, fontWeight: 800, color: t.orange, letterSpacing: "0.12em", textTransform: "uppercase" }}>
+        Leaderboard
+      </div>
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
+        {LB_METRICS.map((m) => (
+          <button
+            key={m.key}
+            type="button"
+            onClick={() => setMetric(m.key)}
+            style={{
+              padding: "4px 8px",
+              fontSize: 10,
+              fontWeight: 700,
+              borderRadius: 14,
+              border: `1px solid ${metric === m.key ? t.orange : t.border}`,
+              background: metric === m.key ? `${t.orange}22` : t.surf2,
+              color: metric === m.key ? t.text : t.text2,
+              cursor: "pointer",
+              fontFamily: "'DM Sans',sans-serif",
+            }}
+          >
+            {m.l}
+          </button>
+        ))}
+      </div>
+      <div style={{ display: "flex", flexDirection: "column", gap: 8, maxHeight: "min(62vh, 580px)", overflowY: "auto", paddingRight: 4 }}>
+        {stats.slice(0, 20).map((c, i) => {
+          const ac = accent(c.industry);
+          const pct = Math.round((c[metric] / maxVal) * 100);
+          return (
+            <div key={c.company}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 6, marginBottom: 3 }}>
+                <span style={{ fontSize: 11, fontWeight: 700, color: t.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                  <span style={{ color: t.text3, fontFamily: "'DM Mono',monospace", marginRight: 4 }}>{i + 1}</span>
+                  {c.company}
+                </span>
+                <span style={{ fontSize: 11, fontWeight: 800, color: ac, fontFamily: "'DM Mono',monospace", flexShrink: 0 }}>
+                  {formatCTC(c[metric])}
+                </span>
+              </div>
+              <div style={{ height: 3, background: t.surf2, borderRadius: 6, overflow: "hidden" }}>
+                <div style={{ width: `${pct}%`, height: "100%", background: `linear-gradient(90deg,${ac}88,${ac})`, borderRadius: 6 }} />
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function ChartsSidePanel({ entries }) {
+  const t = useT();
+  const hBar = 148;
+  const hPie = 148;
+  const hCity = 132;
+  const axis = { fontSize: 9, fill: t.text3, fontFamily: "'DM Sans',sans-serif" };
+
+  const byIndustry = useMemo(() => {
+    const map = {};
+    entries.forEach((e) => {
+      if (!map[e.industry]) map[e.industry] = [];
+      map[e.industry].push(totalCTC(e));
+    });
+    return Object.entries(map)
+      .map(([name, vals]) => ({ name, avg: Math.round(vals.reduce((a, b) => a + b, 0) / vals.length) }))
+      .sort((a, b) => b.avg - a.avg)
+      .slice(0, 8);
+  }, [entries]);
+
+  const byCity = useMemo(() => {
+    const map = {};
+    entries.forEach((e) => {
+      if (!map[e.location]) map[e.location] = [];
+      map[e.location].push(totalCTC(e));
+    });
+    return Object.entries(map)
+      .map(([name, vals]) => ({ name, avg: Math.round(vals.reduce((a, b) => a + b, 0) / vals.length) }))
+      .sort((a, b) => b.avg - a.avg)
+      .slice(0, 5);
+  }, [entries]);
+
+  const pie = useMemo(() => {
+    const map = {};
+    entries.forEach((e) => {
+      map[e.industry] = (map[e.industry] || 0) + 1;
+    });
+    return Object.entries(map)
+      .map(([name, value]) => ({ name, value }))
+      .slice(0, 8);
+  }, [entries]);
+
+  const CTipS = ({ active, payload, label }) => {
+    if (!active || !payload?.length) return null;
+    return (
+      <div style={{ background: t.surf, border: `1px solid ${t.border}`, borderRadius: 8, padding: "8px 10px", fontFamily: "'DM Sans',sans-serif", fontSize: 11 }}>
+        <div style={{ fontWeight: 700, color: t.text, marginBottom: 2 }}>{label}</div>
+        {payload.map((p) => (
+          <div key={p.name} style={{ color: p.color }}>
+            ₹{formatL(p.value)} {p.name}
+          </div>
+        ))}
+      </div>
+    );
+  };
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+      <div style={{ fontSize: 10, fontWeight: 800, color: t.orange, letterSpacing: "0.12em", textTransform: "uppercase", marginBottom: 2 }}>
+        Charts snapshot
+      </div>
+      <div style={{ background: t.surf2, border: `1px solid ${t.border}`, borderRadius: 12, padding: "10px 8px" }}>
+        <div style={{ fontSize: 11, fontWeight: 700, color: t.text2, marginBottom: 6 }}>Avg CTC · industry</div>
+        <div style={{ width: "100%", height: hBar, minHeight: hBar }}>
+          <ResponsiveContainer width="100%" height={hBar}>
+            <BarChart data={byIndustry} margin={{ left: 0, right: 4, top: 4, bottom: 0 }}>
+              <XAxis dataKey="name" tick={axis} axisLine={false} tickLine={false} interval={0} angle={-28} textAnchor="end" height={52} />
+              <YAxis tickFormatter={formatL} tick={axis} axisLine={false} tickLine={false} width={28} />
+              <Tooltip content={<CTipS />} cursor={{ fill: `${t.orange}10` }} />
+              <Bar dataKey="avg" radius={[4, 4, 0, 0]}>
+                {byIndustry.map((e, i) => (
+                  <Cell key={i} fill={accent(e.name)} />
+                ))}
+              </Bar>
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+      </div>
+      <div style={{ background: t.surf2, border: `1px solid ${t.border}`, borderRadius: 12, padding: "10px 8px" }}>
+        <div style={{ fontSize: 11, fontWeight: 700, color: t.text2, marginBottom: 6 }}>Entries · industry</div>
+        <div style={{ width: "100%", height: hPie, minHeight: hPie }}>
+          <ResponsiveContainer width="100%" height={hPie}>
+            <PieChart>
+              <Pie data={pie} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={52} innerRadius={24}>
+                {pie.map((_, i) => (
+                  <Cell key={i} fill={accent(pie[i].name)} />
+                ))}
+              </Pie>
+              <Tooltip formatter={(v, n) => [`${v} entries`, n]} contentStyle={{ background: t.surf, border: `1px solid ${t.border}`, borderRadius: 8, fontSize: 10 }} />
+            </PieChart>
+          </ResponsiveContainer>
+        </div>
+      </div>
+      <div style={{ background: t.surf2, border: `1px solid ${t.border}`, borderRadius: 12, padding: "10px 8px" }}>
+        <div style={{ fontSize: 11, fontWeight: 700, color: t.text2, marginBottom: 6 }}>Avg CTC · city (top 5)</div>
+        <div style={{ width: "100%", height: hCity, minHeight: hCity }}>
+          <ResponsiveContainer width="100%" height={hCity}>
+            <BarChart data={byCity} layout="vertical" margin={{ left: 4, right: 8, top: 4, bottom: 4 }} barCategoryGap={12}>
+              <XAxis type="number" tickFormatter={formatL} tick={axis} axisLine={false} tickLine={false} />
+              <YAxis type="category" dataKey="name" tick={{ ...axis, fill: t.text2 }} axisLine={false} tickLine={false} width={68} />
+              <Tooltip content={<CTipS />} cursor={{ fill: `${t.orange}10` }} />
+              <Bar dataKey="avg" name="Avg CTC" radius={[0, 4, 4, 0]}>
+                {byCity.map((row, i) => (
+                  <Cell key={i} fill={t.orange} />
+                ))}
+              </Bar>
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+      </div>
+      <p style={{ fontSize: 10, color: t.text3, margin: 0, lineHeight: 1.4 }}>
+        Open the <strong style={{ color: t.text2 }}>Charts</strong> tab for the full analytics page — this panel is a compact snapshot.
+      </p>
+    </div>
+  );
+}
+
+/* ──────────────────────────────────────────────────────────────
+   KNOW YOUR WORTH (Feed: mobile above search; desktop: right column)
+────────────────────────────────────────────────────────────── */
+function KnowYourWorthSection({ entries, sidebarMode = false }) {
+  const t = useT();
+  const narrow = useMediaQuery("(max-width: 640px)");
+  const chartH = sidebarMode ? 236 : narrow ? 300 : 340;
+
+  const [companySelect, setCompanySelect] = useState(KYW_FEATURED);
+  const [companySearch, setCompanySearch] = useState("");
+  const [compareBy, setCompareBy] = useState("experience");
+  const [yoeBucket, setYoeBucket] = useState("any");
+  const [levelSelect, setLevelSelect] = useState("any");
+  const [levelCustom, setLevelCustom] = useState("");
+
+  const companiesCanon = useMemo(
+    () => [...new Set(entries.map((e) => e.company))].sort((a, b) => a.localeCompare(b)),
+    [entries],
+  );
+
+  const topFeatured = useMemo(() => {
+    const map = {};
+    entries.forEach((e) => {
+      if (!map[e.company]) map[e.company] = [];
+      map[e.company].push(totalCTC(e));
+    });
+    return Object.entries(map)
+      .map(([name, totals]) => {
+        const avg = Math.round(totals.reduce((a, b) => a + b, 0) / totals.length);
+        const short = name.length > 26 ? `${name.slice(0, 24)}…` : name;
+        return { name: short, fullName: name, avg, n: totals.length };
+      })
+      .sort((a, b) => b.avg - a.avg)
+      .slice(0, 10);
+  }, [entries]);
+
+  const activeCompany = companySelect !== KYW_FEATURED ? companySelect : null;
+
+  const levelsForCompany = useMemo(() => {
+    if (!activeCompany) return [];
+    const s = new Set();
+    entries
+      .filter((e) => e.company === activeCompany)
+      .forEach((e) => {
+        if (e.level && String(e.level).trim()) s.add(String(e.level).trim());
+      });
+    return [...s].sort((a, b) => a.localeCompare(b));
+  }, [entries, activeCompany]);
+
+  const drilldownRows = useMemo(() => {
+    if (!activeCompany) return [];
+    let rows = entries.filter((e) => e.company === activeCompany);
+    if (compareBy === "experience") {
+      rows = rows.filter((e) => yoeInBucket(e.yoe, yoeBucket));
+    } else {
+      if (levelSelect === LEVEL_CUSTOM_KYW) {
+        const q = levelCustom.trim();
+        if (q) rows = rows.filter((e) => foldCase(e.level || "").includes(foldCase(q)));
+      } else if (levelSelect && levelSelect !== "any") {
+        rows = rows.filter((e) => foldCase(e.level || "") === foldCase(levelSelect));
+      }
+    }
+    return rows
+      .sort((a, b) => totalCTC(b) - totalCTC(a))
+      .slice(0, 25)
+      .map((e, i) => ({ name: `#${i + 1}`, value: totalCTC(e) }));
+  }, [entries, activeCompany, compareBy, yoeBucket, levelSelect, levelCustom]);
+
+  const axisKY = { fontSize: sidebarMode || narrow ? 9 : 10, fill: t.text3, fontFamily: "'DM Sans',sans-serif" };
+
+  function applyCompanySearch() {
+    const resolved = resolveCompanyQuery(entries, companySearch);
+    if (resolved) setCompanySelect(resolved);
+  }
+
+  const subtitleFeatured = "Average total CTC · top companies in the dataset.";
+  const bucketLabel = KYW_YOE_OPTS.find((o) => o.key === yoeBucket)?.label ?? "";
+  let subtitleDrill = "";
+  if (activeCompany) {
+    const parts = [activeCompany];
+    if (compareBy === "experience") parts.push(bucketLabel);
+    else if (levelSelect === LEVEL_CUSTOM_KYW) parts.push(levelCustom.trim() ? `Level contains “${levelCustom.trim()}”` : "Any level");
+    else if (levelSelect !== "any") parts.push(`Level ${levelSelect}`);
+    else parts.push("All levels");
+    const n = drilldownRows.length;
+    parts.push(`${n} salary snapshot${n !== 1 ? "s" : ""}`);
+    subtitleDrill = parts.join(" · ");
+  }
+
+  const pill = (active, onClick, label) => (
+    <button
+      type="button"
+      onClick={onClick}
+      style={{
+        padding: "7px 14px",
+        border: `1.5px solid ${active ? t.orange : t.border}`,
+        borderRadius: 20,
+        background: active ? `${t.orange}18` : t.surf2,
+        color: active ? t.text : t.text2,
+        fontSize: 12,
+        fontWeight: active ? 700 : 500,
+        cursor: "pointer",
+        fontFamily: "'DM Sans',sans-serif",
+        transition: "all 0.15s",
+      }}
+    >
+      {label}
+    </button>
+  );
+
+  return (
+    <section
+      id="know-your-worth"
+      style={{
+        background: t.surf,
+        borderBottom: `1px solid ${t.border}`,
+        borderRadius: 14,
+        padding: sidebarMode ? "16px 12px 18px" : narrow ? "20px 12px 24px" : "28px 24px 32px",
+        marginBottom: sidebarMode ? 0 : 20,
+        scrollMarginTop: 112,
+        width: "100%",
+        boxSizing: "border-box",
+      }}
+    >
+      <div style={{ maxWidth: sidebarMode ? "100%" : 1200, margin: "0 auto" }}>
+        <div style={{ marginBottom: 16 }}>
+          <div
+            style={{
+              fontSize: 11,
+              fontWeight: 800,
+              color: t.orange,
+              letterSpacing: "0.14em",
+              textTransform: "uppercase",
+              marginBottom: 6,
+            }}
+          >
+            Know your worth
+          </div>
+          <h2
+            style={{
+              fontSize: sidebarMode ? 17 : narrow ? 20 : 24,
+              fontWeight: 800,
+              color: t.text,
+              margin: 0,
+              letterSpacing: "-0.02em",
+            }}
+          >
+            See how pay stacks up
+          </h2>
+          <p style={{ fontSize: 13, color: t.text2, margin: "8px 0 0", lineHeight: 1.5 }}>
+            {activeCompany ? subtitleDrill : subtitleFeatured}
+          </p>
+        </div>
+
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: narrow || sidebarMode ? "1fr" : "1fr 1fr",
+            gap: 12,
+            marginBottom: 16,
+            alignItems: "end",
+          }}
+        >
+          <Select
+            label="Company"
+            value={companySelect}
+            onChange={(e) => {
+              const v = e.target.value;
+              setCompanySelect(v);
+              if (v === KYW_FEATURED) setCompanySearch("");
+              else setCompanySearch(v);
+            }}
+          >
+            <option value={KYW_FEATURED}>Featured — top companies (avg CTC)</option>
+            {companiesCanon.map((c) => (
+              <option key={c} value={c}>
+                {c}
+              </option>
+            ))}
+          </Select>
+          <div>
+            <FieldLabel text="Find company (case-insensitive)" />
+            <div style={{ display: "flex", gap: 8 }}>
+              <input
+                value={companySearch}
+                onChange={(e) => setCompanySearch(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && applyCompanySearch()}
+                placeholder="Type e.g. google, zepto…"
+                style={{
+                  flex: 1,
+                  minWidth: 0,
+                  boxSizing: "border-box",
+                  background: t.surf2,
+                  border: `1.5px solid ${t.border}`,
+                  borderRadius: 10,
+                  padding: "11px 14px",
+                  fontSize: 13,
+                  color: t.text,
+                  outline: "none",
+                  fontFamily: "'DM Sans',sans-serif",
+                }}
+              />
+              <button
+                type="button"
+                onClick={applyCompanySearch}
+                style={{
+                  flexShrink: 0,
+                  background: t.orange,
+                  color: "#0E0E0E",
+                  border: "none",
+                  borderRadius: 10,
+                  padding: "0 16px",
+                  fontSize: 13,
+                  fontWeight: 800,
+                  cursor: "pointer",
+                  fontFamily: "'DM Sans',sans-serif",
+                }}
+              >
+                Find
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {activeCompany && (
+          <div style={{ marginBottom: 16 }}>
+            <div style={{ fontSize: 11, fontWeight: 700, color: t.text2, marginBottom: 8, letterSpacing: "0.06em" }}>
+              Compare within company by
+            </div>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 12 }}>
+              {pill(compareBy === "experience", () => {
+                setCompareBy("experience");
+                setLevelSelect("any");
+                setLevelCustom("");
+              }, "Years of experience")}
+              {pill(compareBy === "level", () => {
+                setCompareBy("level");
+                setYoeBucket("any");
+              }, "Level / band")}
+            </div>
+            {compareBy === "experience" && (
+              <Select
+                label="Experience band"
+                value={yoeBucket}
+                onChange={(e) => setYoeBucket(e.target.value)}
+              >
+                {KYW_YOE_OPTS.map((o) => (
+                  <option key={o.key} value={o.key}>
+                    {o.label}
+                  </option>
+                ))}
+              </Select>
+            )}
+            {compareBy === "level" && (
+              <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                <Select
+                  label="Level / band"
+                  value={levelSelect}
+                  onChange={(e) => {
+                    const v = e.target.value;
+                    setLevelSelect(v);
+                    if (v !== LEVEL_CUSTOM_KYW) setLevelCustom("");
+                  }}
+                >
+                  <option value="any">All levels</option>
+                  {levelsForCompany.map((lv) => (
+                    <option key={lv} value={lv}>
+                      {lv}
+                    </option>
+                  ))}
+                  <option value={LEVEL_CUSTOM_KYW}>Custom (type below)…</option>
+                </Select>
+                {levelSelect === LEVEL_CUSTOM_KYW && (
+                  <Input
+                    label="Custom level (contains, case-insensitive)"
+                    placeholder="e.g. senior, L5, principal…"
+                    value={levelCustom}
+                    onChange={(e) => {
+                      setLevelCustom(e.target.value);
+                      setLevelSelect(LEVEL_CUSTOM_KYW);
+                    }}
+                  />
+                )}
+              </div>
+            )}
+          </div>
+        )}
+
+        <div
+          style={{
+            background: t.surf2,
+            border: `1px solid ${t.border}`,
+            borderRadius: 14,
+            padding: sidebarMode ? "12px 10px" : narrow ? "14px 10px" : "18px 16px",
+            width: "100%",
+            minWidth: 0,
+            boxSizing: "border-box",
+          }}
+        >
+          {!activeCompany && topFeatured.length > 0 && (
+            <div style={{ width: "100%", height: chartH, minHeight: chartH }}>
+              <ResponsiveContainer width="100%" height={chartH}>
+              <BarChart layout="vertical" data={topFeatured} margin={{ left: 4, right: 12, top: 8, bottom: 8 }}>
+                <XAxis type="number" tickFormatter={formatL} tick={axisKY} axisLine={false} tickLine={false} />
+                <YAxis
+                  type="category"
+                  dataKey="name"
+                  tick={{ ...axisKY, fill: t.text2 }}
+                  axisLine={false}
+                  tickLine={false}
+                  width={sidebarMode ? 84 : narrow ? 108 : 148}
+                />
+                <Tooltip
+                  content={({ active, payload }) => {
+                    if (!active || !payload?.length) return null;
+                    const row = payload[0]?.payload;
+                    return (
+                      <div
+                        style={{
+                          background: t.surf,
+                          border: `1px solid ${t.border}`,
+                          borderRadius: 8,
+                          padding: "10px 12px",
+                          fontSize: 12,
+                          fontFamily: "'DM Sans',sans-serif",
+                        }}
+                      >
+                        <div style={{ fontWeight: 700, color: t.text, marginBottom: 4 }}>{row.fullName}</div>
+                        <div style={{ color: t.orange, fontFamily: "'DM Mono',monospace" }}>{formatCTC(row.avg)} avg</div>
+                        <div style={{ fontSize: 11, color: t.text3 }}>{row.n} entries</div>
+                      </div>
+                    );
+                  }}
+                />
+                <Bar dataKey="avg" name="Avg CTC" fill={t.orange} radius={[0, 6, 6, 0]} barSize={sidebarMode ? 16 : narrow ? 18 : 22} />
+              </BarChart>
+            </ResponsiveContainer>
+            </div>
+          )}
+
+          {activeCompany && drilldownRows.length > 0 && (
+            <div style={{ width: "100%", height: Math.min(sidebarMode ? 300 : 420, 120 + drilldownRows.length * (sidebarMode ? 22 : narrow ? 26 : 28)), minHeight: 140 }}>
+              <ResponsiveContainer width="100%" height="100%">
+              <BarChart layout="vertical" data={drilldownRows} margin={{ left: 4, right: 12, top: 8, bottom: 8 }}>
+                <XAxis type="number" tickFormatter={formatL} tick={axisKY} axisLine={false} tickLine={false} />
+                <YAxis type="category" dataKey="name" tick={axisKY} axisLine={false} tickLine={false} width={36} />
+                <Tooltip
+                  formatter={(v) => formatCTC(v)}
+                  contentStyle={{
+                    background: t.surf,
+                    border: `1px solid ${t.border}`,
+                    borderRadius: 8,
+                    fontFamily: "'DM Sans',sans-serif",
+                    fontSize: 12,
+                  }}
+                />
+                <Bar dataKey="value" name="Total CTC" fill={accent(entries.find((e) => e.company === activeCompany)?.industry || "")} radius={[0, 6, 6, 0]} barSize={sidebarMode ? 14 : narrow ? 16 : 20} />
+              </BarChart>
+            </ResponsiveContainer>
+            </div>
+          )}
+
+          {activeCompany && drilldownRows.length === 0 && (
+            <div style={{ textAlign: "center", padding: "36px 16px", color: t.text3, fontSize: 14 }}>
+              No salaries match this company and filter yet. Try another band, level, or pick a different company.
+            </div>
+          )}
+
+          {!activeCompany && topFeatured.length === 0 && (
+            <div style={{ textAlign: "center", padding: "36px 16px", color: t.text3, fontSize: 14 }}>
+              Add entries to see company averages here.
+            </div>
+          )}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/* ──────────────────────────────────────────────────────────────
    ROOT APP
 ────────────────────────────────────────────────────────────── */
 export default function App() {
@@ -1147,8 +1871,17 @@ export default function App() {
   const [entries,   setEntries]   = useState(SEED);
   const [tab,       setTab]       = useState("Feed");
   const [showForm,  setShowForm]  = useState(false);
+  const narrow = useMediaQuery("(max-width: 640px)");
+  /** Tablet/desktop: Feed tab uses 3-column dashboard; Charts / Leaderboard tabs show full pages. */
+  const wideDashboard = useMediaQuery("(min-width: 768px)");
 
   const t = tokens(dark);
+
+  useEffect(() => {
+    const bg = tokens(dark).bg;
+    document.documentElement.style.backgroundColor = bg;
+    document.body.style.backgroundColor = bg;
+  }, [dark]);
 
   useEffect(() => {
     if (!supabase) return undefined;
@@ -1195,34 +1928,76 @@ export default function App() {
 
   const tabIcons = { Feed:"📋", Charts:"📊", Leaderboard:"🏆" };
 
+  const hx = narrow ? 12 : 24;
+  const shellPad = narrow ? 12 : 24;
+
   return (
     <ThemeCtx.Provider value={{ dark, toggle: () => setDark(d => !d) }}>
-      <div style={{ minHeight:"100vh", background:t.bg, fontFamily:"'DM Sans',sans-serif", color:t.text, transition:"background 0.25s, color 0.25s" }}>
+      <div style={{ minHeight:"100vh", width:"100%", boxSizing:"border-box", background:t.bg, fontFamily:"'DM Sans',sans-serif", color:t.text, transition:"background 0.25s, color 0.25s" }}>
 
         {/* ── Header ── */}
-        <header style={{ background:t.surf, borderBottom:`1px solid ${t.border}`, padding:"0 24px", display:"flex", alignItems:"center", justifyContent:"space-between", height:60, position:"sticky", top:0, zIndex:100, boxShadow:`0 1px 12px rgba(0,0,0,${dark?0.4:0.06})`, transition:"background 0.25s, border-color 0.25s" }}>
-          <div style={{ display:"flex", alignItems:"center", gap:10 }}>
-            <Logo size={20} />
+        <header style={{
+          background:t.surf, borderBottom:`1px solid ${t.border}`,
+          padding: narrow ? "10px 12px" : "0 24px",
+          display:"flex", alignItems:"center", justifyContent:"space-between",
+          gap:10,
+          height:56, position:"sticky", top:0, zIndex:100,
+          boxShadow:`0 1px 12px rgba(0,0,0,${dark?0.4:0.06})`, transition:"background 0.25s, border-color 0.25s",
+        }}>
+          <div style={{ display:"flex", alignItems:"center", gap:8, flexShrink:0, minWidth:0 }}>
+            <Logo size={narrow ? 18 : 20} />
             <Beta />
+            {narrow && (
+              <span style={{ fontSize:10, color:t.text2, whiteSpace:"nowrap", opacity:0.9 }}>
+                {entries.length} shared
+              </span>
+            )}
           </div>
-          <div style={{ display:"flex", alignItems:"center", gap:10 }}>
-            <div style={{ fontSize:11, color:t.text2, display:"flex", alignItems:"center", gap:5 }}>
-              <span style={{ width:7, height:7, borderRadius:"50%", background:t.green, display:"inline-block", boxShadow:`0 0 6px ${t.green}` }} />
-              {entries.length} salaries shared
-            </div>
-            {/* Light / Dark toggle */}
-            <button onClick={() => setDark(d => !d)} style={{ background:t.surf2, border:`1px solid ${t.border}`, borderRadius:20, padding:"6px 12px", cursor:"pointer", fontSize:13, color:t.text2, fontFamily:"'DM Sans',sans-serif", display:"flex", alignItems:"center", gap:5 }}>
-              {dark ? "☀️" : "🌙"} {dark ? "Light" : "Dark"}
+          <div style={{ display:"flex", alignItems:"center", gap:narrow ? 6 : 10, flexShrink:0 }}>
+            <a
+              href={feedbackHref()}
+              {...(feedbackOpensInNewTab() ? { target: "_blank", rel: "noopener noreferrer" } : {})}
+              aria-label={
+                feedbackOpensInNewTab()
+                  ? "Send feedback (opens Google Form in a new tab)"
+                  : "Send feedback (opens your email app)"
+              }
+              style={{
+                background:"transparent",
+                border:`1px solid ${t.border}`,
+                borderRadius:20,
+                padding: narrow ? "6px 10px" : "6px 14px",
+                fontSize:narrow ? 12 : 13,
+                fontWeight:600,
+                color:t.text2,
+                fontFamily:"'DM Sans',sans-serif",
+                textDecoration:"none",
+                whiteSpace:"nowrap",
+                display:"flex",
+                alignItems:"center",
+                gap:5,
+              }}
+            >
+              💬 {narrow ? "Feedback" : "Send feedback"}
+            </a>
+            {!narrow && (
+              <div style={{ fontSize:11, color:t.text2, display:"flex", alignItems:"center", gap:5 }}>
+                <span style={{ width:7, height:7, borderRadius:"50%", background:t.green, display:"inline-block", boxShadow:`0 0 6px ${t.green}` }} />
+                {entries.length} salaries shared
+              </div>
+            )}
+            <button type="button" onClick={() => setDark(d => !d)} style={{ background:t.surf2, border:`1px solid ${t.border}`, borderRadius:20, padding: narrow ? "6px 10px" : "6px 12px", cursor:"pointer", fontSize:narrow ? 12 : 13, color:t.text2, fontFamily:"'DM Sans',sans-serif", display:"flex", alignItems:"center", gap:5 }}>
+              {dark ? "☀️" : "🌙"} {!narrow && (dark ? "Light" : "Dark")}
             </button>
-            <button onClick={() => setShowForm(true)} style={{ background:t.orange, color:"#0E0E0E", border:"none", borderRadius:10, padding:"9px 18px", fontSize:13, fontWeight:800, cursor:"pointer", fontFamily:"'DM Sans',sans-serif", boxShadow:`0 0 16px ${t.orange}44` }}>
-              + Share Salary
+            <button type="button" onClick={() => setShowForm(true)} style={{ background:t.orange, color:"#0E0E0E", border:"none", borderRadius:10, padding: narrow ? "8px 12px" : "9px 18px", fontSize:narrow ? 12 : 13, fontWeight:800, cursor:"pointer", fontFamily:"'DM Sans',sans-serif", boxShadow:`0 0 16px ${t.orange}44`, whiteSpace:"nowrap" }}>
+              {narrow ? "+ Share" : "+ Share Salary"}
             </button>
           </div>
         </header>
 
         {/* ── Hero ── */}
-        <div style={{ background: dark ? "#111111" : "#FFF8F3", borderBottom:`1px solid ${t.border}`, padding:"32px 24px 26px", transition:"background 0.25s" }}>
-          <div style={{ maxWidth:820, margin:"0 auto", textAlign:"center" }}>
+        <div style={{ background: dark ? "#111111" : "#FFF8F3", borderBottom:`1px solid ${t.border}`, padding: narrow ? "24px 12px 20px" : "32px 24px 26px", transition:"background 0.25s" }}>
+          <div style={{ width:"100%", maxWidth:"100%", margin:"0 auto", textAlign:"center", padding:`0 ${hx}px`, boxSizing:"border-box" }}>
             <div style={{ fontSize:11, fontWeight:700, color:t.orange, letterSpacing:"0.12em", textTransform:"uppercase", marginBottom:10 }}>🇮🇳 India's Anonymous Salary Community</div>
             <h1 style={{ fontFamily:"'DM Sans',sans-serif", fontSize:"clamp(24px,4vw,40px)", fontWeight:800, color:t.text, margin:0, letterSpacing:"-0.03em", lineHeight:1.2 }}>
               Real salaries. No BS.{" "}
@@ -1231,36 +2006,105 @@ export default function App() {
             <p style={{ color:t.text2, fontSize:14, marginTop:12, maxWidth:460, margin:"12px auto 0", lineHeight:1.6 }}>
               Community-powered salary data from India's best companies. Anonymous, honest, and free.
             </p>
-            <div style={{ display:"flex", justifyContent:"center", gap:40, marginTop:24, flexWrap:"wrap" }}>
+            <div style={{ display:"flex", justifyContent:"center", gap: narrow ? 20 : 40, marginTop:24, flexWrap:"wrap" }}>
               {[
                 { label:"Total Entries", val:entries.length, ac:t.orange },
                 { label:"Avg Total CTC", val:avgCTC,         ac:"#FF6B35" },
                 { label:"Avg Base",      val:avgBase,         ac:t.purple },
                 { label:"Companies",     val:cos,             ac:t.green  },
               ].map(s => (
-                <div key={s.label} style={{ textAlign:"center" }}>
-                  <div style={{ fontSize:24, fontWeight:800, color:s.ac, fontFamily:"'DM Mono',monospace", letterSpacing:"-0.02em" }}>{s.val}</div>
+                <div key={s.label} style={{ textAlign:"center", minWidth: narrow ? "72px" : undefined }}>
+                  <div style={{ fontSize: narrow ? 20 : 24, fontWeight:800, color:s.ac, fontFamily:"'DM Mono',monospace", letterSpacing:"-0.02em" }}>{s.val}</div>
                   <div style={{ fontSize:10, color:t.text2, fontWeight:600, marginTop:3, textTransform:"uppercase", letterSpacing:"0.08em" }}>{s.label}</div>
                 </div>
               ))}
             </div>
+            <div style={{ marginTop:18 }}>
+              <button
+                type="button"
+                onClick={() => {
+                  setTab("Feed");
+                  setTimeout(() => document.getElementById("know-your-worth")?.scrollIntoView({ behavior: "smooth", block: "start" }), 80);
+                }}
+                style={{
+                  background:"transparent", border:`1.5px solid ${t.orange}55`, color:t.orange,
+                  borderRadius:20, padding:"8px 18px", fontSize:12, fontWeight:700, cursor:"pointer",
+                  fontFamily:"'DM Sans',sans-serif",
+                }}
+              >
+                Pay benchmarks · company compare ↓
+              </button>
+            </div>
           </div>
         </div>
 
-        {/* ── Tabs ── */}
-        <div style={{ background:t.surf, borderBottom:`1px solid ${t.border}`, display:"flex", padding:"0 24px", position:"sticky", top:60, zIndex:90, transition:"background 0.25s" }}>
+        {/* ── Tabs — Feed / Charts / Leaderboard (all breakpoints; desktop Charts & Leaderboard are full detail) ── */}
+        <div style={{ background:t.surf, borderBottom:`1px solid ${t.border}`, display:"flex", padding: narrow ? "0 8px" : "0 24px", position:"sticky", top:56, zIndex:90, transition:"background 0.25s", overflowX:"auto", WebkitOverflowScrolling:"touch" }}>
           {TABS.map(tab_ => (
-            <button key={tab_} onClick={() => setTab(tab_)} style={{ background:"none", border:"none", padding:"14px 18px", fontSize:13, fontWeight: tab===tab_ ? 700 : 500, cursor:"pointer", color: tab===tab_ ? t.orange : t.text2, fontFamily:"'DM Sans',sans-serif", borderBottom:`2.5px solid ${tab===tab_ ? t.orange : "transparent"}`, marginBottom:-1, transition:"all 0.15s" }}>
+            <button key={tab_} type="button" onClick={() => setTab(tab_)} style={{ background:"none", border:"none", padding: narrow ? "12px 10px" : "14px 18px", fontSize: narrow ? 12 : 13, fontWeight: tab===tab_ ? 700 : 500, cursor:"pointer", color: tab===tab_ ? t.orange : t.text2, fontFamily:"'DM Sans',sans-serif", borderBottom:`2.5px solid ${tab===tab_ ? t.orange : "transparent"}`, marginBottom:-1, transition:"all 0.15s", flexShrink:0 }}>
               {tabIcons[tab_]} {tab_}
             </button>
           ))}
         </div>
 
-        {/* ── Content ── */}
-        <main style={{ maxWidth:820, margin:"0 auto", padding:"24px 16px" }}>
-          {tab === "Feed"        && <FeedTab entries={entries} />}
-          {tab === "Charts"      && <ChartsTab entries={entries} />}
-          {tab === "Leaderboard" && <LeaderboardTab entries={entries} />}
+        {/* ── Content — desktop Feed: 3-col dashboard; desktop Charts/Leaderboard: full pages; mobile: tabbed full-width ── */}
+        <main style={{ width:"100%", maxWidth:"100%", margin:0, padding:`${shellPad}px`, boxSizing:"border-box" }}>
+          {!wideDashboard ? (
+            <>
+              {tab === "Feed"        && <FeedTab entries={entries} />}
+              {tab === "Charts"      && <ChartsTab entries={entries} />}
+              {tab === "Leaderboard" && <LeaderboardTab entries={entries} />}
+            </>
+          ) : tab === "Feed" ? (
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "minmax(220px, 0.95fr) minmax(0, 2.2fr) minmax(300px, 1.12fr)",
+                gap: 18,
+                width: "100%",
+                alignItems: "start",
+                maxWidth: 1780,
+                margin: "0 auto",
+              }}
+            >
+              <aside
+                style={{
+                  position: "sticky",
+                  top: 108,
+                  maxHeight: "calc(100vh - 108px)",
+                  overflowY: "auto",
+                  minWidth: 0,
+                }}
+              >
+                <ChartsSidePanel entries={entries} />
+              </aside>
+              <div style={{ minWidth: 0 }}>
+                <FeedTab entries={entries} omitKnowYourWorth />
+              </div>
+              <aside
+                style={{
+                  position: "sticky",
+                  top: 108,
+                  maxHeight: "calc(100vh - 108px)",
+                  overflowY: "auto",
+                  minWidth: 0,
+                }}
+              >
+                <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+                  <KnowYourWorthSection entries={entries} sidebarMode />
+                  <LeaderboardSidePanel entries={entries} />
+                </div>
+              </aside>
+            </div>
+          ) : tab === "Charts" ? (
+            <div style={{ width: "100%", maxWidth: 1320, margin: "0 auto" }}>
+              <ChartsTab entries={entries} />
+            </div>
+          ) : (
+            <div style={{ width: "100%", maxWidth: 1320, margin: "0 auto" }}>
+              <LeaderboardTab entries={entries} />
+            </div>
+          )}
         </main>
 
         {showForm && (
@@ -1270,7 +2114,7 @@ export default function App() {
           />
         )}
 
-        <footer style={{ borderTop:`1px solid ${t.border}`, padding:"24px 16px", textAlign:"center", color:t.text3, fontSize:12 }}>
+        <footer style={{ borderTop:`1px solid ${t.border}`, padding: narrow ? "18px 12px" : "24px 16px", textAlign:"center", color:t.text3, fontSize:narrow ? 11 : 12 }}>
           <div style={{ display:"flex", alignItems:"center", justifyContent:"center", gap:10, flexWrap:"wrap" }}>
             <Logo size={15} />
             <span>· Made for India's working professionals · All submissions are 100% anonymous</span>
