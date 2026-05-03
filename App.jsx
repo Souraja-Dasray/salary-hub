@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect, useLayoutEffect, useRef, createContext, useContext } from "react";
+import { useState, useMemo, useEffect, useLayoutEffect, useRef, createContext, useContext, Fragment } from "react";
 import { createClient } from "@supabase/supabase-js";
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer,
@@ -148,22 +148,33 @@ const VESTING = [
 const SORT_OPTS = ["Newest","Highest CTC","Lowest CTC","Most Experience"];
 const TABS      = ["Feed","Charts","Leaderboard"];
 
+/** Self-reported — used for filters & pay-parity charts (stored in Supabase metadata.gender) */
+const GENDER_OPTS = ["Woman", "Man", "Non-binary", "Prefer not to say"];
+
+const GENDER_BAR_COLOR = {
+  Woman: "#EC4899",
+  Man: "#3B9EFF",
+  "Non-binary": "#A78BFA",
+  "Prefer not to say": "#6B7280",
+  "Not stated": "#9CA3AF",
+};
+
 /* ──────────────────────────────────────────────────────────────
    SEED DATA
 ────────────────────────────────────────────────────────────── */
 const SEED = [
-  { id:1,  company:"Google India",  role:"Software Engineer (SDE-2)", level:"L4", industry:"Big Tech",     base:4500000, variable:500000, joining:500000, joiningClawback:true,  joiningClawbackMonths:"12", retention:0, retentionClawback:false, retentionClawbackMonths:"12", hasEquity:true,  equityType:"RSU", esopGrants:6000000, esopValue:1500000, vestingSchedule:"1-yr cliff, 4-yr vest", variableNote:"", esopNote:"", benefits:["food","gym","insurance","learning","wfh"], yoe:6, location:"Hyderabad", notes:"", date:"2026-04-29" },
-  { id:2,  company:"Zepto",         role:"Product Manager (PM-2)",    level:"IC4", industry:"Startup",     base:3200000, variable:480000, joining:300000, joiningClawback:false, joiningClawbackMonths:"12", retention:0, retentionClawback:false, retentionClawbackMonths:"12", hasEquity:true,  equityType:"ESOP",esopGrants:3200000, esopValue:800000,  vestingSchedule:"1-yr cliff, 4-yr vest", variableNote:"Paid quarterly", esopNote:"", benefits:["food","commute","insurance","wellness","phone"], yoe:4, location:"Mumbai",    notes:"", date:"2026-04-27" },
-  { id:3,  company:"Goldman Sachs", role:"Analyst",                   level:"Analyst", industry:"Finance / Banking", base:2200000, variable:600000, joining:0, joiningClawback:false, joiningClawbackMonths:"12", retention:0, retentionClawback:false, retentionClawbackMonths:"12", hasEquity:false, equityType:"", esopGrants:0, esopValue:0, vestingSchedule:"", variableNote:"Discretionary", esopNote:"", benefits:["insurance","lifeins","eap"], yoe:2, location:"Bengaluru", notes:"", date:"2026-04-25" },
-  { id:4,  company:"Razorpay",      role:"Senior Backend Engineer",   level:"SDE-3",   industry:"Fintech",  base:3000000, variable:300000, joining:200000, joiningClawback:true,  joiningClawbackMonths:"12", retention:0, retentionClawback:false, retentionClawbackMonths:"12", hasEquity:true,  equityType:"ESOP",esopGrants:2400000, esopValue:600000, vestingSchedule:"1-yr cliff, 4-yr vest", variableNote:"", esopNote:"Current valuation ₹320/share", benefits:["food","insurance","gym","learning"], yoe:4, location:"Bengaluru", notes:"", date:"2026-04-22" },
-  { id:5,  company:"TCS",           role:"Software Engineer (SDE-1)", level:"C2",      industry:"IT Services",base:700000,variable:50000, joining:0, joiningClawback:false,  joiningClawbackMonths:"12", retention:0, retentionClawback:false, retentionClawbackMonths:"12", hasEquity:false, equityType:"",esopGrants:0,esopValue:0,vestingSchedule:"",variableNote:"",esopNote:"", benefits:["food","commute","insurance"], yoe:2, location:"Chennai", notes:"", date:"2026-04-20" },
-  { id:6,  company:"Microsoft India",role:"Senior Software Engineer (SDE-3)",level:"62",industry:"Big Tech",base:4200000,variable:420000,joining:0,joiningClawback:false,joiningClawbackMonths:"12",retention:400000,retentionClawback:true,retentionClawbackMonths:"12",hasEquity:true,equityType:"RSU",esopGrants:4800000,esopValue:1200000,vestingSchedule:"1-yr cliff, 4-yr vest",variableNote:"",esopNote:"",benefits:["food","gym","insurance","learning","wfh","wellness","eap"],yoe:5,location:"Hyderabad",notes:"",date:"2026-04-18"},
-  { id:7,  company:"PhonePe",       role:"Backend Engineer (SDE-3)",  level:"SDE-3",  industry:"Fintech",  base:3800000,variable:380000,joining:0,joiningClawback:false,joiningClawbackMonths:"12",retention:0,retentionClawback:false,retentionClawbackMonths:"12",hasEquity:true,equityType:"ESOP",esopGrants:3600000,esopValue:900000,vestingSchedule:"1-yr cliff, 4-yr vest",variableNote:"",esopNote:"",benefits:["food","insurance","gym","phone"],yoe:5,location:"Bengaluru",notes:"",date:"2026-04-15"},
-  { id:8,  company:"Deloitte",      role:"Senior Consultant",         level:"Senior", industry:"Consulting",base:1600000,variable:320000,joining:0,joiningClawback:false,joiningClawbackMonths:"12",retention:0,retentionClawback:false,retentionClawbackMonths:"12",hasEquity:false,equityType:"",esopGrants:0,esopValue:0,vestingSchedule:"",variableNote:"",esopNote:"",benefits:["insurance","travel","learning"],yoe:4,location:"Mumbai",notes:"",date:"2026-04-12"},
-  { id:9,  company:"Swiggy",        role:"Data Scientist (DS-2)",     level:"IC3",    industry:"Startup",  base:2800000,variable:280000,joining:150000,joiningClawback:false,joiningClawbackMonths:"12",retention:0,retentionClawback:false,retentionClawbackMonths:"12",hasEquity:true,equityType:"ESOP",esopGrants:1600000,esopValue:400000,vestingSchedule:"1-yr cliff, 4-yr vest",variableNote:"",esopNote:"",benefits:["food","insurance","wellness"],yoe:3,location:"Bengaluru",notes:"",date:"2026-04-08"},
-  { id:10, company:"Infosys",       role:"Senior Software Engineer (SDE-3)",level:"SSE",industry:"IT Services",base:1800000,variable:180000,joining:0,joiningClawback:false,joiningClawbackMonths:"12",retention:0,retentionClawback:false,retentionClawbackMonths:"12",hasEquity:false,equityType:"",esopGrants:0,esopValue:0,vestingSchedule:"",variableNote:"",esopNote:"",benefits:["commute","insurance","food"],yoe:5,location:"Bengaluru",notes:"",date:"2026-04-05"},
-  { id:11, company:"CRED",          role:"Senior UX Designer",        level:"L4",     industry:"Fintech",  base:2600000,variable:260000,joining:200000,joiningClawback:false,joiningClawbackMonths:"12",retention:0,retentionClawback:false,retentionClawbackMonths:"12",hasEquity:true,equityType:"ESOP",esopGrants:2000000,esopValue:500000,vestingSchedule:"1-yr cliff, 4-yr vest",variableNote:"",esopNote:"",benefits:["food","wellness","insurance","gym"],yoe:3,location:"Bengaluru",notes:"",date:"2026-04-02"},
-  { id:12, company:"Amazon India",  role:"Software Engineer (SDE-2)", level:"SDE-2",  industry:"Big Tech", base:3900000,variable:390000,joining:0,joiningClawback:false,joiningClawbackMonths:"12",retention:0,retentionClawback:false,retentionClawbackMonths:"12",hasEquity:true,equityType:"RSU",esopGrants:3200000,esopValue:800000,vestingSchedule:"1-yr cliff, 4-yr vest",variableNote:"",esopNote:"",benefits:["food","gym","insurance","learning","wfh"],yoe:4,location:"Bengaluru",notes:"",date:"2026-03-30"},
+  { id:1,  company:"Google India",  role:"Software Engineer (SDE-2)", level:"L4", industry:"Big Tech",     base:4500000, variable:500000, joining:500000, joiningClawback:true,  joiningClawbackMonths:"12", retention:0, retentionClawback:false, retentionClawbackMonths:"12", hasEquity:true,  equityType:"RSU", esopGrants:6000000, esopValue:1500000, vestingSchedule:"1-yr cliff, 4-yr vest", variableNote:"", esopNote:"", benefits:["food","gym","insurance","learning","wfh"], yoe:6, location:"Hyderabad", notes:"", gender:"Woman", date:"2026-04-29" },
+  { id:2,  company:"Zepto",         role:"Product Manager (PM-2)",    level:"IC4", industry:"Startup",     base:3200000, variable:480000, joining:300000, joiningClawback:false, joiningClawbackMonths:"12", retention:0, retentionClawback:false, retentionClawbackMonths:"12", hasEquity:true,  equityType:"ESOP",esopGrants:3200000, esopValue:800000,  vestingSchedule:"1-yr cliff, 4-yr vest", variableNote:"Paid quarterly", esopNote:"", benefits:["food","commute","insurance","wellness","phone"], yoe:4, location:"Mumbai",    notes:"", gender:"Man", date:"2026-04-27" },
+  { id:3,  company:"Goldman Sachs", role:"Analyst",                   level:"Analyst", industry:"Finance / Banking", base:2200000, variable:600000, joining:0, joiningClawback:false, joiningClawbackMonths:"12", retention:0, retentionClawback:false, retentionClawbackMonths:"12", hasEquity:false, equityType:"", esopGrants:0, esopValue:0, vestingSchedule:"", variableNote:"Discretionary", esopNote:"", benefits:["insurance","lifeins","eap"], yoe:2, location:"Bengaluru", notes:"", gender:"Woman", date:"2026-04-25" },
+  { id:4,  company:"Razorpay",      role:"Senior Backend Engineer",   level:"SDE-3",   industry:"Fintech",  base:3000000, variable:300000, joining:200000, joiningClawback:true,  joiningClawbackMonths:"12", retention:0, retentionClawback:false, retentionClawbackMonths:"12", hasEquity:true,  equityType:"ESOP",esopGrants:2400000, esopValue:600000, vestingSchedule:"1-yr cliff, 4-yr vest", variableNote:"", esopNote:"Current valuation ₹320/share", benefits:["food","insurance","gym","learning"], yoe:4, location:"Bengaluru", notes:"", gender:"Man", date:"2026-04-22" },
+  { id:5,  company:"TCS",           role:"Software Engineer (SDE-1)", level:"C2",      industry:"IT Services",base:700000,variable:50000, joining:0, joiningClawback:false,  joiningClawbackMonths:"12", retention:0, retentionClawback:false, retentionClawbackMonths:"12", hasEquity:false, equityType:"",esopGrants:0,esopValue:0,vestingSchedule:"",variableNote:"",esopNote:"", benefits:["food","commute","insurance"], yoe:2, location:"Chennai", notes:"", gender:"Prefer not to say", date:"2026-04-20" },
+  { id:6,  company:"Microsoft India",role:"Senior Software Engineer (SDE-3)",level:"62",industry:"Big Tech",base:4200000,variable:420000,joining:0,joiningClawback:false,joiningClawbackMonths:"12",retention:400000,retentionClawback:true,retentionClawbackMonths:"12",hasEquity:true,equityType:"RSU",esopGrants:4800000,esopValue:1200000,vestingSchedule:"1-yr cliff, 4-yr vest",variableNote:"",esopNote:"",benefits:["food","gym","insurance","learning","wfh","wellness","eap"],yoe:5,location:"Hyderabad",notes:"",gender:"Man", date:"2026-04-18"},
+  { id:7,  company:"PhonePe",       role:"Backend Engineer (SDE-3)",  level:"SDE-3",  industry:"Fintech",  base:3800000,variable:380000,joining:0,joiningClawback:false,joiningClawbackMonths:"12",retention:0,retentionClawback:false,retentionClawbackMonths:"12",hasEquity:true,equityType:"ESOP",esopGrants:3600000,esopValue:900000,vestingSchedule:"1-yr cliff, 4-yr vest",variableNote:"",esopNote:"",benefits:["food","insurance","gym","phone"],yoe:5,location:"Bengaluru",notes:"",gender:"Woman", date:"2026-04-15"},
+  { id:8,  company:"Deloitte",      role:"Senior Consultant",         level:"Senior", industry:"Consulting",base:1600000,variable:320000,joining:0,joiningClawback:false,joiningClawbackMonths:"12",retention:0,retentionClawback:false,retentionClawbackMonths:"12",hasEquity:false,equityType:"",esopGrants:0,esopValue:0,vestingSchedule:"",variableNote:"",esopNote:"",benefits:["insurance","travel","learning"],yoe:4,location:"Mumbai",notes:"",gender:"Man", date:"2026-04-12"},
+  { id:9,  company:"Swiggy",        role:"Data Scientist (DS-2)",     level:"IC3",    industry:"Startup",  base:2800000,variable:280000,joining:150000,joiningClawback:false,joiningClawbackMonths:"12",retention:0,retentionClawback:false,retentionClawbackMonths:"12",hasEquity:true,equityType:"ESOP",esopGrants:1600000,esopValue:400000,vestingSchedule:"1-yr cliff, 4-yr vest",variableNote:"",esopNote:"",benefits:["food","insurance","wellness"],yoe:3,location:"Bengaluru",notes:"",gender:"Woman", date:"2026-04-08"},
+  { id:10, company:"Infosys",       role:"Senior Software Engineer (SDE-3)",level:"SSE",industry:"IT Services",base:1800000,variable:180000,joining:0,joiningClawback:false,joiningClawbackMonths:"12",retention:0,retentionClawback:false,retentionClawbackMonths:"12",hasEquity:false,equityType:"",esopGrants:0,esopValue:0,vestingSchedule:"",variableNote:"",esopNote:"",benefits:["commute","insurance","food"],yoe:5,location:"Bengaluru",notes:"",gender:"Man", date:"2026-04-05"},
+  { id:11, company:"CRED",          role:"Senior UX Designer",        level:"L4",     industry:"Fintech",  base:2600000,variable:260000,joining:200000,joiningClawback:false,joiningClawbackMonths:"12",retention:0,retentionClawback:false,retentionClawbackMonths:"12",hasEquity:true,equityType:"ESOP",esopGrants:2000000,esopValue:500000,vestingSchedule:"1-yr cliff, 4-yr vest",variableNote:"",esopNote:"",benefits:["food","wellness","insurance","gym"],yoe:3,location:"Bengaluru",notes:"",gender:"Non-binary", date:"2026-04-02"},
+  { id:12, company:"Amazon India",  role:"Software Engineer (SDE-2)", level:"SDE-2",  industry:"Big Tech", base:3900000,variable:390000,joining:0,joiningClawback:false,joiningClawbackMonths:"12",retention:0,retentionClawback:false,retentionClawbackMonths:"12",hasEquity:true,equityType:"RSU",esopGrants:3200000,esopValue:800000,vestingSchedule:"1-yr cliff, 4-yr vest",variableNote:"",esopNote:"",benefits:["food","gym","insurance","learning","wfh"],yoe:4,location:"Bengaluru",notes:"",gender:"Woman", date:"2026-03-30"},
   { id:13, company:"Uber", role:"Software Engineer (SDE-2)", level:"L4", industry:"Big Tech",
     base:4460000, variable:600000, joining:800000, joiningClawback:false, joiningClawbackMonths:"12",
     retention:0, retentionClawback:false, retentionClawbackMonths:"12",
@@ -174,29 +185,29 @@ const SEED = [
     benefits:["food","insurance","wellness","phone"],
     yoe:4, location:"Bengaluru",
     notes:"Source: anonymous survey. YoE 3.5 yrs (shown as 4); prior exp product-based. Fixed ₹44.6L (₹42L base + ~₹2.6L PF). Sign-on ₹5L + relocation ₹3L (combined in Joining). Gratuity ~₹1.1L. First-year TC reported ~₹71L; steady-state ~₹66L+ from year 2. Prior role TC ~₹28L. Perks: ~₹7.5L medical, $50/mo Uber credits, ₹3k/mo mobile / device program, ₹4.8k/mo wellness, 17% ride discount, onsite food. City not specified — defaulted to Bengaluru.",
-    date:"2026-05-01" },
+    gender:"Man", date:"2026-05-01" },
 
-  { id:14, company:"Atlassian", role:"Software Engineer (SDE-2)", level:"P4", industry:"SaaS", base:3700000, variable:350000, joining:0, joiningClawback:false, joiningClawbackMonths:"12", retention:0, retentionClawback:false, retentionClawbackMonths:"12", hasEquity:true, equityType:"RSU", esopGrants:6720000, esopValue:1680000, vestingSchedule:"1-yr cliff, 4-yr vest", variableNote:"Target bonus ₹3.5L.", esopNote:"$90k USD / 4yr; ~₹16.8L/yr annualised.", benefits:["food","insurance","learning","wellness"], yoe:4, location:"Bengaluru", notes:"Anonymous survey. YoE 3.5; prior product-based; Tier I education. Fixed ₹37L incl PF. Current TC ~₹28L. Total steady ~₹58L stated.", date:"2022-06-01" },
+  { id:14, company:"Atlassian", role:"Software Engineer (SDE-2)", level:"P4", industry:"SaaS", base:3700000, variable:350000, joining:0, joiningClawback:false, joiningClawbackMonths:"12", retention:0, retentionClawback:false, retentionClawbackMonths:"12", hasEquity:true, equityType:"RSU", esopGrants:6720000, esopValue:1680000, vestingSchedule:"1-yr cliff, 4-yr vest", variableNote:"Target bonus ₹3.5L.", esopNote:"$90k USD / 4yr; ~₹16.8L/yr annualised.", benefits:["food","insurance","learning","wellness"], yoe:4, location:"Bengaluru", notes:"Anonymous survey. YoE 3.5; prior product-based; Tier I education. Fixed ₹37L incl PF. Current TC ~₹28L. Total steady ~₹58L stated.", gender:"Man", date:"2022-06-01" },
 
-  { id:15, company:"Amazon India", role:"Software Engineer (SDE-2)", level:"L5", industry:"Big Tech", base:3600000, variable:0, joining:2200000, joiningClawback:false, joiningClawbackMonths:"12", retention:0, retentionClawback:false, retentionClawbackMonths:"12", hasEquity:true, equityType:"RSU", esopGrants:12000000, esopValue:2500000, vestingSchedule:"Custom", variableNote:"Target bonus N/A for offer.", esopNote:"25 RSUs; vest 5%, 15%, 40%, 40%. ₹16L second-year signing noted separately (not in Joining field).", benefits:["food","insurance","commute","sodexo"], yoe:4, location:"Bengaluru", notes:"Anonymous survey. YoE 3.5; Tier 1 CS; prior product-based. Joining ₹22L Y1 + ₹16L Y2 (Y2 in notes only). Total ~₹61L amortised / 4y stated. Benefits: ₹5L medical, ₹1100/mo meal, ₹1250/mo broadband.", date:"2024-03-01" },
+  { id:15, company:"Amazon India", role:"Software Engineer (SDE-2)", level:"L5", industry:"Big Tech", base:3600000, variable:0, joining:2200000, joiningClawback:false, joiningClawbackMonths:"12", retention:0, retentionClawback:false, retentionClawbackMonths:"12", hasEquity:true, equityType:"RSU", esopGrants:12000000, esopValue:2500000, vestingSchedule:"Custom", variableNote:"Target bonus N/A for offer.", esopNote:"25 RSUs; vest 5%, 15%, 40%, 40%. ₹16L second-year signing noted separately (not in Joining field).", benefits:["food","insurance","commute","sodexo"], yoe:4, location:"Bengaluru", notes:"Anonymous survey. YoE 3.5; Tier 1 CS; prior product-based. Joining ₹22L Y1 + ₹16L Y2 (Y2 in notes only). Total ~₹61L amortised / 4y stated. Benefits: ₹5L medical, ₹1100/mo meal, ₹1250/mo broadband.", gender:"Man", date:"2024-03-01" },
 
-  { id:16, company:"Gojek", role:"Senior Software Engineer (SDE-3)", level:"IC III", industry:"Startup", base:3600000, variable:700000, joining:0, joiningClawback:false, joiningClawbackMonths:"12", retention:0, retentionClawback:false, retentionClawbackMonths:"12", hasEquity:true, equityType:"RSU", esopGrants:2400000, esopValue:750000, vestingSchedule:"1-yr cliff, 4-yr vest", variableNote:"Target ₹7L; up to ~₹14L stated.", esopNote:"$40k USD / 4yr; ~₹7.5L/yr. IPO timing speculative.", benefits:["wellness","phone","learning","reloc"], yoe:4, location:"Bengaluru", notes:"Anonymous survey. Offer Q1 2021. PF + gratuity ~₹2.5L (in notes). Bachelor tier-1 CS. Total ~₹53L yearly stated.", date:"2021-03-01" },
+  { id:16, company:"Gojek", role:"Senior Software Engineer (SDE-3)", level:"IC III", industry:"Startup", base:3600000, variable:700000, joining:0, joiningClawback:false, joiningClawbackMonths:"12", retention:0, retentionClawback:false, retentionClawbackMonths:"12", hasEquity:true, equityType:"RSU", esopGrants:2400000, esopValue:750000, vestingSchedule:"1-yr cliff, 4-yr vest", variableNote:"Target ₹7L; up to ~₹14L stated.", esopNote:"$40k USD / 4yr; ~₹7.5L/yr. IPO timing speculative.", benefits:["wellness","phone","learning","reloc"], yoe:4, location:"Bengaluru", notes:"Anonymous survey. Offer Q1 2021. PF + gratuity ~₹2.5L (in notes). Bachelor tier-1 CS. Total ~₹53L yearly stated.", gender:"Woman", date:"2021-03-01" },
 
-  { id:17, company:"CRED", role:"Backend Engineer (SDE-2)", level:"SDE II", industry:"Fintech", base:3800000, variable:0, joining:0, joiningClawback:false, joiningClawbackMonths:"12", retention:0, retentionClawback:false, retentionClawbackMonths:"12", hasEquity:true, equityType:"ESOP", esopGrants:13500000, esopValue:337500, vestingSchedule:"1-yr cliff, 4-yr vest", variableNote:"No separate variable; mostly fixed.", esopNote:"₹13.5L Series C grant over 4y; ~₹3.375L/yr.", benefits:["insurance","food","wellness"], yoe:4, location:"Bengaluru", notes:"Anonymous survey. Offer Q1 2021. BTech Tier 3. Total ₹41.375L / yr stated (₹38L liquid). Buyback / valuation upside noted by submitter.", date:"2021-03-01" },
+  { id:17, company:"CRED", role:"Backend Engineer (SDE-2)", level:"SDE II", industry:"Fintech", base:3800000, variable:0, joining:0, joiningClawback:false, joiningClawbackMonths:"12", retention:0, retentionClawback:false, retentionClawbackMonths:"12", hasEquity:true, equityType:"ESOP", esopGrants:13500000, esopValue:337500, vestingSchedule:"1-yr cliff, 4-yr vest", variableNote:"No separate variable; mostly fixed.", esopNote:"₹13.5L Series C grant over 4y; ~₹3.375L/yr.", benefits:["insurance","food","wellness"], yoe:4, location:"Bengaluru", notes:"Anonymous survey. Offer Q1 2021. BTech Tier 3. Total ₹41.375L / yr stated (₹38L liquid). Buyback / valuation upside noted by submitter.", gender:"Man", date:"2021-03-01" },
 
-  { id:18, company:"Stripe", role:"Software Engineer (SDE-2)", level:"L2", industry:"Fintech", base:4400000, variable:440000, joining:1100000, joiningClawback:false, joiningClawbackMonths:"12", retention:0, retentionClawback:false, retentionClawbackMonths:"12", hasEquity:true, equityType:"RSU", esopGrants:11600000, esopValue:2900000, vestingSchedule:"1-yr cliff, 4-yr vest", variableNote:"10% of base (~₹4.4L).", esopNote:"~$35k USD / yr; ~₹29L/yr India value cited.", benefits:["insurance","wellness","food"], yoe:4, location:"Bengaluru", notes:"Anonymous survey. Offer Nov 2023. YoE 3–4y; Tier 3 BTech CS. Prior FAANG SDE1. Total ~₹77L + ₹11L one-time signing stated.", date:"2023-11-01" },
+  { id:18, company:"Stripe", role:"Software Engineer (SDE-2)", level:"L2", industry:"Fintech", base:4400000, variable:440000, joining:1100000, joiningClawback:false, joiningClawbackMonths:"12", retention:0, retentionClawback:false, retentionClawbackMonths:"12", hasEquity:true, equityType:"RSU", esopGrants:11600000, esopValue:2900000, vestingSchedule:"1-yr cliff, 4-yr vest", variableNote:"10% of base (~₹4.4L).", esopNote:"~$35k USD / yr; ~₹29L/yr India value cited.", benefits:["insurance","wellness","food"], yoe:4, location:"Bengaluru", notes:"Anonymous survey. Offer Nov 2023. YoE 3–4y; Tier 3 BTech CS. Prior FAANG SDE1. Total ~₹77L + ₹11L one-time signing stated.", gender:"Woman", date:"2023-11-01" },
 
-  { id:19, company:"Rubrik", role:"Senior Software Engineer (SDE-3)", level:"G6", industry:"SaaS", base:4500000, variable:675000, joining:540000, joiningClawback:false, joiningClawbackMonths:"12", retention:0, retentionClawback:false, retentionClawbackMonths:"12", hasEquity:true, equityType:"RSU", esopGrants:11700000, esopValue:2435000, vestingSchedule:"4-yr vest (equal)", variableNote:"15% target (~₹6.75L).", esopNote:"3900 units ~$30/sh; 25%/yr vest.", benefits:["insurance","food","learning"], yoe:3, location:"Bengaluru", notes:"Anonymous survey. June 2024. M.Tech Tier 1; ~3y YoE. Y1 TC ~₹81.5L; steady ~₹76.1L stated.", date:"2024-06-01" },
+  { id:19, company:"Rubrik", role:"Senior Software Engineer (SDE-3)", level:"G6", industry:"SaaS", base:4500000, variable:675000, joining:540000, joiningClawback:false, joiningClawbackMonths:"12", retention:0, retentionClawback:false, retentionClawbackMonths:"12", hasEquity:true, equityType:"RSU", esopGrants:11700000, esopValue:2435000, vestingSchedule:"4-yr vest (equal)", variableNote:"15% target (~₹6.75L).", esopNote:"3900 units ~$30/sh; 25%/yr vest.", benefits:["insurance","food","learning"], yoe:3, location:"Bengaluru", notes:"Anonymous survey. June 2024. M.Tech Tier 1; ~3y YoE. Y1 TC ~₹81.5L; steady ~₹76.1L stated.", gender:"Prefer not to say", date:"2024-06-01" },
 
-  { id:20, company:"Google India", role:"Software Engineer (SDE-2)", level:"L4", industry:"Big Tech", base:3760000, variable:564000, joining:550000, joiningClawback:false, joiningClawbackMonths:"12", retention:0, retentionClawback:false, retentionClawbackMonths:"12", hasEquity:true, equityType:"RSU", esopGrants:12200000, esopValue:3076000, vestingSchedule:"Custom", variableNote:"15% target (~₹5.64L).", esopNote:"$92k USD grant; vest 38%, 32%, 18%, 12%. PF ~₹1.8L separate.", benefits:["food","gym","insurance","learning","wfh"], yoe:4, location:"Bengaluru", notes:"Anonymous survey. Offer June 2024. Y1 ~₹79.5L; Y2 ~₹69.4L stated.", date:"2024-06-01" },
+  { id:20, company:"Google India", role:"Software Engineer (SDE-2)", level:"L4", industry:"Big Tech", base:3760000, variable:564000, joining:550000, joiningClawback:false, joiningClawbackMonths:"12", retention:0, retentionClawback:false, retentionClawbackMonths:"12", hasEquity:true, equityType:"RSU", esopGrants:12200000, esopValue:3076000, vestingSchedule:"Custom", variableNote:"15% target (~₹5.64L).", esopNote:"$92k USD grant; vest 38%, 32%, 18%, 12%. PF ~₹1.8L separate.", benefits:["food","gym","insurance","learning","wfh"], yoe:4, location:"Bengaluru", notes:"Anonymous survey. Offer June 2024. Y1 ~₹79.5L; Y2 ~₹69.4L stated.", gender:"Man", date:"2024-06-01" },
 
-  { id:21, company:"Tower Research Capital", role:"Senior Software Engineer (SDE-3)", level:"Senior", industry:"Finance / Banking", base:6700000, variable:4000000, joining:1500000, joiningClawback:false, joiningClawbackMonths:"12", retention:0, retentionClawback:false, retentionClawbackMonths:"12", hasEquity:false, equityType:"", esopGrants:0, esopValue:0, vestingSchedule:"", variableNote:"Avg bonus ~₹40L/yr stated (high variance).", esopNote:"", benefits:["insurance","food"], yoe:6, location:"Gurugram", notes:"Anonymous survey. Offer Nov 2021. ₹67L base incl PF. Y1 TC ~₹1.22 Cr; steady ~₹1.07 Cr stated. Tier 1 BTech.", date:"2021-11-04" },
+  { id:21, company:"Tower Research Capital", role:"Senior Software Engineer (SDE-3)", level:"Senior", industry:"Finance / Banking", base:6700000, variable:4000000, joining:1500000, joiningClawback:false, joiningClawbackMonths:"12", retention:0, retentionClawback:false, retentionClawbackMonths:"12", hasEquity:false, equityType:"", esopGrants:0, esopValue:0, vestingSchedule:"", variableNote:"Avg bonus ~₹40L/yr stated (high variance).", esopNote:"", benefits:["insurance","food"], yoe:6, location:"Gurugram", notes:"Anonymous survey. Offer Nov 2021. ₹67L base incl PF. Y1 TC ~₹1.22 Cr; steady ~₹1.07 Cr stated. Tier 1 BTech.", gender:"Woman", date:"2021-11-04" },
 
-  { id:22, company:"Coinbase", role:"Software Engineer (SDE-2)", level:"IC4", industry:"Fintech", base:4900000, variable:250000, joining:500000, joiningClawback:false, joiningClawbackMonths:"12", retention:0, retentionClawback:false, retentionClawbackMonths:"12", hasEquity:true, equityType:"RSU", esopGrants:8600000, esopValue:2158000, vestingSchedule:"1-yr cliff, 4-yr vest", variableNote:"Performance bonus ~₹2.5L.", esopNote:"~$26k USD/yr cited; refresh multiplier possible.", benefits:["insurance","wellness","wfh"], yoe:5, location:"Remote", notes:"Anonymous survey. 2024. Prior Atlassian; YoE ~5.4y. Remote/Bengaluru. Total ~₹75L Y1 stated.", date:"2024-09-01" },
+  { id:22, company:"Coinbase", role:"Software Engineer (SDE-2)", level:"IC4", industry:"Fintech", base:4900000, variable:250000, joining:500000, joiningClawback:false, joiningClawbackMonths:"12", retention:0, retentionClawback:false, retentionClawbackMonths:"12", hasEquity:true, equityType:"RSU", esopGrants:8600000, esopValue:2158000, vestingSchedule:"1-yr cliff, 4-yr vest", variableNote:"Performance bonus ~₹2.5L.", esopNote:"~$26k USD/yr cited; refresh multiplier possible.", benefits:["insurance","wellness","wfh"], yoe:5, location:"Remote", notes:"Anonymous survey. 2024. Prior Atlassian; YoE ~5.4y. Remote/Bengaluru. Total ~₹75L Y1 stated.", gender:"Man", date:"2024-09-01" },
 
-  { id:23, company:"NAVI", role:"Software Engineer (SDE-2)", level:"SDE-2", industry:"Fintech", base:5200000, variable:0, joining:200000, joiningClawback:false, joiningClawbackMonths:"12", retention:0, retentionClawback:false, retentionClawbackMonths:"12", hasEquity:true, equityType:"ESOP", esopGrants:12000000, esopValue:300000, vestingSchedule:"4-yr vest (equal)", variableNote:"", esopNote:"₹12L grant total; ~₹3L/yr (25%/yr over 4y).", benefits:["insurance","food"], yoe:6, location:"Bengaluru", notes:"Anonymous survey. YoE 5.5; prior Salesforce. Total ~₹57L incl benefits stated.", date:"2024-07-01" },
+  { id:23, company:"NAVI", role:"Software Engineer (SDE-2)", level:"SDE-2", industry:"Fintech", base:5200000, variable:0, joining:200000, joiningClawback:false, joiningClawbackMonths:"12", retention:0, retentionClawback:false, retentionClawbackMonths:"12", hasEquity:true, equityType:"ESOP", esopGrants:12000000, esopValue:300000, vestingSchedule:"4-yr vest (equal)", variableNote:"", esopNote:"₹12L grant total; ~₹3L/yr (25%/yr over 4y).", benefits:["insurance","food"], yoe:6, location:"Bengaluru", notes:"Anonymous survey. YoE 5.5; prior Salesforce. Total ~₹57L incl benefits stated.", gender:"Woman", date:"2024-07-01" },
 
-  { id:24, company:"Meesho", role:"Senior Software Engineer (SDE-3)", level:"SDE3", industry:"E-Commerce", base:5400000, variable:0, joining:500000, joiningClawback:false, joiningClawbackMonths:"12", retention:0, retentionClawback:false, retentionClawbackMonths:"12", hasEquity:true, equityType:"ESOP", esopGrants:30000000, esopValue:550000, vestingSchedule:"1-yr cliff, 4-yr vest", variableNote:"", esopNote:"₹30L RSU grant / 4yr vest; ~₹5.5L/yr used for CTC line to match ~₹64.5L submitter total.", benefits:["insurance","food","wellness"], yoe:6, location:"Remote", notes:"Anonymous survey. YoE 5.5; Tier 3 BTech; prior Salesforce. ₹3L+₹2L signing/relo combined in Joining. Remote.", date:"2024-08-01" },
+  { id:24, company:"Meesho", role:"Senior Software Engineer (SDE-3)", level:"SDE3", industry:"E-Commerce", base:5400000, variable:0, joining:500000, joiningClawback:false, joiningClawbackMonths:"12", retention:0, retentionClawback:false, retentionClawbackMonths:"12", hasEquity:true, equityType:"ESOP", esopGrants:30000000, esopValue:550000, vestingSchedule:"1-yr cliff, 4-yr vest", variableNote:"", esopNote:"₹30L RSU grant / 4yr vest; ~₹5.5L/yr used for CTC line to match ~₹64.5L submitter total.", benefits:["insurance","food","wellness"], yoe:6, location:"Remote", notes:"Anonymous survey. YoE 5.5; Tier 3 BTech; prior Salesforce. ₹3L+₹2L signing/relo combined in Joining. Remote.", gender:"Man", date:"2024-08-01" },
 ];
 
 /* ──────────────────────────────────────────────────────────────
@@ -230,6 +241,67 @@ function median(arr) {
   return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2;
 }
 
+/** Same bucket labels as Know Your Worth parity chart (GENDER_OPTS + Not stated). */
+function entryGenderBucket(entry) {
+  const raw = typeof entry.gender === "string" ? entry.gender.trim() : "";
+  return GENDER_OPTS.includes(raw) ? raw : "Not stated";
+}
+
+/** Per-company avg / median total CTC by gender bucket (uses full dataset). */
+function buildCompanyGenderPayStats(entries) {
+  const byCompany = {};
+  for (const e of entries) {
+    const c = e.company;
+    if (!byCompany[c]) byCompany[c] = {};
+    const g = entryGenderBucket(e);
+    if (!byCompany[c][g]) byCompany[c][g] = [];
+    byCompany[c][g].push(totalCTC(e));
+  }
+  const order = [...GENDER_OPTS, "Not stated"];
+  const out = {};
+  for (const company of Object.keys(byCompany)) {
+    const gMap = byCompany[company];
+    const buckets = [];
+    for (const g of order) {
+      const vals = gMap[g];
+      if (!vals?.length) continue;
+      const sum = vals.reduce((a, b) => a + b, 0);
+      buckets.push({
+        gender: g,
+        n: vals.length,
+        avg: Math.round(sum / vals.length),
+        median: Math.round(median(vals)),
+      });
+    }
+    if (buckets.length) out[company] = { buckets };
+  }
+  return out;
+}
+
+/** Dataset-wide avg / median total CTC by gender bucket (same order as GENDER_OPTS + Not stated). */
+function buildDatasetGenderStats(entries) {
+  const by = {};
+  for (const e of entries) {
+    const g = entryGenderBucket(e);
+    if (!by[g]) by[g] = [];
+    by[g].push(totalCTC(e));
+  }
+  const order = [...GENDER_OPTS, "Not stated"];
+  const rows = [];
+  for (const g of order) {
+    const vals = by[g];
+    if (!vals?.length) continue;
+    const sum = vals.reduce((a, b) => a + b, 0);
+    rows.push({
+      gender: g,
+      n: vals.length,
+      avg: Math.round(sum / vals.length),
+      median: Math.round(median(vals)),
+    });
+  }
+  return rows;
+}
+
 /** Case-insensitive substring match (SQL LIKE %q%) across common fields */
 function foldCase(s) {
   return String(s ?? "").toLocaleLowerCase("en-IN");
@@ -238,7 +310,7 @@ function entryMatchesSearch(entry, queryRaw) {
   const q = queryRaw.trim();
   if (!q) return true;
   const fq = foldCase(q);
-  const fields = [entry.company, entry.role, entry.location, entry.industry, entry.level];
+  const fields = [entry.company, entry.role, entry.location, entry.industry, entry.level, entry.gender];
   return fields.some((f) => foldCase(f).includes(fq));
 }
 
@@ -560,7 +632,7 @@ function BenefitChips({ selected, onToggle }) {
    SUBMISSION FORM  (multi-step)
 ────────────────────────────────────────────────────────────── */
 const EMPTY_FORM = {
-  company:"", role:"", level:"", industry:"", location:"", yoe:"",
+  company:"", role:"", level:"", industry:"", location:"", yoe:"", gender:"",
   base:"", joining:"", joiningClawback:false, joiningClawbackMonths:"12", hasJoining:false,
   retention:"", retentionClawback:false, retentionClawbackMonths:"12", hasRetention:false,
   variableType:"percentage", variable:"", variablePercent:"", variableNote:"",
@@ -594,7 +666,7 @@ function SubmitForm({ onSubmit, onClose }) {
   };
 
   const canNext = () => {
-    if (step === 0) return form.company && form.role && form.industry && form.location;
+    if (step === 0) return form.company && form.role && form.industry && form.location && form.gender;
     if (step === 1) return parse(form.base) > 0;
     return true;
   };
@@ -703,6 +775,15 @@ function SubmitForm({ onSubmit, onClose }) {
                   </Select>
                   <Input label="Years of Experience" type="number" placeholder="5" value={form.yoe} onChange={e => F("yoe", e.target.value)} suffix="yrs" />
                 </div>
+                <Select label="Gender (for community pay-parity stats)" value={form.gender} onChange={e => F("gender", e.target.value)}>
+                  <option value="">Select…</option>
+                  {GENDER_OPTS.map((g) => (
+                    <option key={g} value={g}>{g}</option>
+                  ))}
+                </Select>
+                <p style={{ fontSize:11, color:t.text3, margin:0, lineHeight:1.5 }}>
+                  Used only in aggregates — never shown with your name. Helps compare pay at similar experience.
+                </p>
               </div>
             )}
 
@@ -828,7 +909,7 @@ function SubmitForm({ onSubmit, onClose }) {
                     <div>
                       <div style={{ fontSize:16, fontWeight:800, color:t.text }}>{form.company}</div>
                       <div style={{ fontSize:12, color:t.text2, marginTop:2 }}>{form.role} · {form.level}</div>
-                      <div style={{ fontSize:11, color:t.text3, marginTop:2 }}>{form.industry} · {form.location} · {form.yoe}y exp</div>
+                      <div style={{ fontSize:11, color:t.text3, marginTop:2 }}>{form.industry} · {form.location} · {form.yoe}y exp{form.gender ? ` · ${form.gender}` : ""}</div>
                     </div>
                     <div style={{ textAlign:"right" }}>
                       <div style={{ fontSize:22, fontWeight:800, color:t.orange, fontFamily:"'DM Mono',monospace" }}>{formatCTC(totalCTC({ ...previewEntry }))}</div>
@@ -917,10 +998,12 @@ function StepHead({ n, title, sub }) {
 /* ──────────────────────────────────────────────────────────────
    ENTRY CARD
 ────────────────────────────────────────────────────────────── */
-function EntryCard({ entry, expanded, onClick }) {
+function EntryCard({ entry, expanded, onClick, companyGenderPay }) {
   const t    = useT();
   const ac   = accent(entry.industry);
   const tot  = totalCTC(entry);
+  const gBucket = entryGenderBucket(entry);
+  const genderRows = companyGenderPay?.buckets;
 
   return (
     <div onClick={onClick} style={{
@@ -945,8 +1028,50 @@ function EntryCard({ entry, expanded, onClick }) {
             <Chip text={entry.industry} color={ac} />
             <Chip text={`📍 ${entry.location}`} color={t.text2} bg={t.surf2} />
             <Chip text={`${entry.yoe}y exp`} color={t.text2} bg={t.surf2} />
+            <Chip
+              text={gBucket === "Not stated" ? "Gender · not stated" : `Gender · ${gBucket}`}
+              color={t.purple}
+              bg={t.surf2}
+            />
             {entry.hasEquity && <Chip text={`📈 ${entry.equityType}`} color={t.green} />}
           </div>
+          {genderRows && genderRows.length > 0 && (
+            <div style={{ marginTop:12 }}>
+              <div style={{ fontSize:10, fontWeight:700, color:t.text2, letterSpacing:"0.06em", textTransform:"uppercase", marginBottom:6 }}>
+                This company · total CTC by gender
+              </div>
+              <div style={{ display:"flex", flexDirection:"column", gap:5 }}>
+                {genderRows.map((row) => (
+                  <div
+                    key={row.gender}
+                    style={{
+                      fontSize:11,
+                      color:t.text3,
+                      lineHeight:1.45,
+                      display:"flex",
+                      flexWrap:"wrap",
+                      alignItems:"baseline",
+                      gap:"6px 10px",
+                    }}
+                  >
+                    <span style={{ fontWeight:700, color: GENDER_BAR_COLOR[row.gender] ?? t.text2 }}>{row.gender}</span>
+                    <span style={{ fontFamily:"'DM Mono',monospace", color:t.text2 }}>
+                      n={row.n}
+                    </span>
+                    <span style={{ fontFamily:"'DM Mono',monospace" }}>
+                      avg {formatCTC(row.avg)}
+                    </span>
+                    <span style={{ fontFamily:"'DM Mono',monospace" }}>
+                      med {formatCTC(row.median)}
+                    </span>
+                  </div>
+                ))}
+              </div>
+              <div style={{ fontSize:10, color:t.text3, marginTop:6, lineHeight:1.35 }}>
+                Averages / medians use all entries for this company in the dataset (not only your filters).
+              </div>
+            </div>
+          )}
         </div>
         <div style={{ textAlign:"right", flexShrink:0 }}>
           <div style={{ fontSize:21, fontWeight:800, color:ac, fontFamily:"'DM Mono',monospace", letterSpacing:"-0.03em" }}>{formatCTC(tot)}</div>
@@ -1011,6 +1136,7 @@ function FeedTab({ entries, omitKnowYourWorth = false }) {
   const t = useT();
   const [filter,   setFilter]   = useState("All");
   const [city,     setCity]     = useState("All");
+  const [genderFilter, setGenderFilter] = useState("All");
   const [sort,     setSort]     = useState("Newest");
   const [search,   setSearch]   = useState("");
   const [expanded, setExpanded] = useState(null);
@@ -1019,13 +1145,16 @@ function FeedTab({ entries, omitKnowYourWorth = false }) {
     let d = [...entries];
     if (filter !== "All") d = d.filter(e => e.industry === filter);
     if (city   !== "All") d = d.filter(e => e.location  === city);
+    if (genderFilter !== "All") d = d.filter(e => (e.gender || "") === genderFilter);
     if (search) d = d.filter(e => entryMatchesSearch(e, search));
     if (sort === "Newest")          d.sort((a, b) => new Date(b.date) - new Date(a.date));
     else if (sort === "Highest CTC") d.sort((a, b) => totalCTC(b) - totalCTC(a));
     else if (sort === "Lowest CTC")  d.sort((a, b) => totalCTC(a) - totalCTC(b));
     else if (sort === "Most Experience") d.sort((a, b) => b.yoe - a.yoe);
     return d;
-  }, [entries, filter, city, sort, search]);
+  }, [entries, filter, city, genderFilter, sort, search]);
+
+  const companyGenderPayByCompany = useMemo(() => buildCompanyGenderPayStats(entries), [entries]);
 
   const pillBtn = (active, onClick, label) => (
     <button onClick={onClick} style={{
@@ -1043,7 +1172,7 @@ function FeedTab({ entries, omitKnowYourWorth = false }) {
       {!omitKnowYourWorth && <KnowYourWorthSection entries={entries} />}
       <div style={{ background:t.surf, border:`1px solid ${t.border}`, borderRadius:14, padding:"16px 18px", marginBottom:16 }}>
         <div style={{ display:"flex", gap:10, marginBottom:12, flexWrap:"wrap" }}>
-          <input value={search} onChange={e => setSearch(e.target.value)} placeholder="🔍  Search company, role, city, industry, level…"
+          <input value={search} onChange={e => setSearch(e.target.value)} placeholder="🔍  Search company, role, city, industry, level, gender…"
             style={{ flex:"1 1 180px", background:t.surf2, border:`1.5px solid ${t.border}`, borderRadius:10, padding:"9px 14px", fontSize:13, color:t.text, outline:"none", fontFamily:"'DM Sans',sans-serif" }} />
           <select value={sort} onChange={e => setSort(e.target.value)} style={{ background:t.surf2, border:`1.5px solid ${t.border}`, borderRadius:10, padding:"9px 28px 9px 12px", fontSize:13, color:t.text, outline:"none", cursor:"pointer", fontFamily:"'DM Sans',sans-serif", appearance:"none" }}>
             {SORT_OPTS.map(o => <option key={o}>{o}</option>)}
@@ -1052,13 +1181,24 @@ function FeedTab({ entries, omitKnowYourWorth = false }) {
         <div style={{ display:"flex", gap:6, flexWrap:"wrap", marginBottom:8 }}>
           {["All",...INDUSTRIES].map(ind => pillBtn(filter === ind, () => setFilter(ind), ind))}
         </div>
-        <div style={{ display:"flex", gap:6, flexWrap:"wrap" }}>
+        <div style={{ display:"flex", gap:6, flexWrap:"wrap", marginBottom:8 }}>
           {["All",...CITIES].map(c => pillBtn(city === c, () => setCity(c), c))}
+        </div>
+        <div style={{ display:"flex", gap:6, flexWrap:"wrap" }}>
+          {["All", ...GENDER_OPTS].map((g) => pillBtn(genderFilter === g, () => setGenderFilter(g), g))}
         </div>
       </div>
       <div style={{ fontSize:11, color:t.text3, fontWeight:600, marginBottom:12, letterSpacing:"0.06em", textTransform:"uppercase" }}>{filtered.length} entries</div>
       <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
-        {filtered.map(e => <EntryCard key={e.id} entry={e} expanded={expanded === e.id} onClick={() => setExpanded(expanded === e.id ? null : e.id)} />)}
+        {filtered.map((e) => (
+          <EntryCard
+            key={e.id}
+            entry={e}
+            expanded={expanded === e.id}
+            onClick={() => setExpanded(expanded === e.id ? null : e.id)}
+            companyGenderPay={companyGenderPayByCompany[e.company]}
+          />
+        ))}
         {filtered.length === 0 && <div style={{ textAlign:"center", padding:"60px 0", color:t.text3, fontSize:14 }}>No results. Try different filters.</div>}
       </div>
     </div>
@@ -1119,6 +1259,17 @@ function ChartsTab({ entries }) {
     return Object.entries(map).map(([name, vals]) => ({ name, avg: Math.round(vals.reduce((a,b)=>a+b,0)/vals.length) })).sort((a,b)=>b.avg-a.avg).slice(0,6);
   }, [entries]);
 
+  const genderChartRows = useMemo(
+    () => buildDatasetGenderStats(entries).map((r) => ({ name: r.gender, ...r })),
+    [entries],
+  );
+  const manWomanGapPct = useMemo(() => {
+    const man = genderChartRows.find((r) => r.gender === "Man");
+    const woman = genderChartRows.find((r) => r.gender === "Woman");
+    if (!man || !woman || woman.avg <= 0) return null;
+    return ((man.avg - woman.avg) / woman.avg) * 100;
+  }, [genderChartRows]);
+
   const CTip = ({ active, payload, label }) => {
     if (!active || !payload?.length) return null;
     return (
@@ -1155,6 +1306,99 @@ function ChartsTab({ entries }) {
             <Legend wrapperStyle={{ fontSize:11, fontFamily:"'DM Sans',sans-serif", color:t.text2 }} />
           </BarChart>
         </ResponsiveContainer>
+      </ChartCard>
+
+      <ChartCard title="Pay by gender (total CTC)" compact={narrow}>
+        <p style={{ fontSize:12, color:t.text2, marginTop:-6, marginBottom:14, lineHeight:1.55 }}>
+          Self-reported gender across the loaded dataset. Average and median total CTC side by side; small <em>n</em> skews bars.
+        </p>
+        {genderChartRows.length === 0 ? (
+          <div style={{ padding:28, textAlign:"center", color:t.text3, fontSize:13 }}>No gender-tagged entries yet.</div>
+        ) : (
+          <>
+            <ResponsiveContainer width="100%" height={narrow ? 268 : 292}>
+              <BarChart data={genderChartRows} barGap={4} margin={{ left: 2, right: 8, top: 8, bottom: narrow ? 52 : 28 }}>
+                <XAxis
+                  dataKey="name"
+                  tick={{ ...axis, fill: t.text2 }}
+                  axisLine={false}
+                  tickLine={false}
+                  interval={0}
+                  angle={narrow ? -24 : 0}
+                  textAnchor={narrow ? "end" : "middle"}
+                  height={narrow ? 54 : 36}
+                />
+                <YAxis tickFormatter={formatL} tick={axis} axisLine={false} tickLine={false} width={42} />
+                <Tooltip
+                  content={({ active, payload }) => {
+                    if (!active || !payload?.length) return null;
+                    const row = payload[0]?.payload;
+                    return (
+                      <div
+                        style={{
+                          background: t.surf,
+                          border: `1px solid ${t.border}`,
+                          borderRadius: 8,
+                          padding: "10px 12px",
+                          fontSize: 12,
+                          fontFamily: "'DM Sans',sans-serif",
+                        }}
+                      >
+                        <div style={{ fontWeight: 700, color: t.text, marginBottom: 6 }}>{row.name}</div>
+                        <div style={{ color: t.text3, fontSize: 11 }}>n = {row.n}</div>
+                        <div style={{ color: t.orange, fontFamily: "'DM Mono',monospace", marginTop: 4 }}>avg {formatCTC(row.avg)}</div>
+                        <div style={{ color: t.text2, fontFamily: "'DM Mono',monospace", marginTop: 2 }}>med {formatCTC(row.median)}</div>
+                      </div>
+                    );
+                  }}
+                />
+                <Legend wrapperStyle={{ fontSize: 11, fontFamily: "'DM Sans',sans-serif", color: t.text2 }} />
+                <Bar dataKey="avg" name="Average" radius={[6, 6, 0, 0]} maxBarSize={46}>
+                  {genderChartRows.map((row, i) => (
+                    <Cell key={`a-${i}`} fill={GENDER_BAR_COLOR[row.gender] ?? t.text3} />
+                  ))}
+                </Bar>
+                <Bar dataKey="median" name="Median" radius={[6, 6, 0, 0]} maxBarSize={46}>
+                  {genderChartRows.map((row, i) => (
+                    <Cell key={`m-${i}`} fill={GENDER_BAR_COLOR[row.gender] ?? t.text3} fillOpacity={0.45} />
+                  ))}
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
+            <div style={{ marginTop: 18, borderTop: `1px solid ${t.border}`, paddingTop: 14 }}>
+              <div style={{ fontSize: 12, fontWeight: 800, color: t.text, marginBottom: 10 }}>Breakdown</div>
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "minmax(88px, 1.1fr) repeat(3, minmax(56px, 1fr))",
+                  gap: "8px 10px",
+                  fontSize: 11,
+                  alignItems: "center",
+                }}
+              >
+                <div style={{ fontWeight: 700, color: t.text3, fontSize: 10, letterSpacing: "0.06em", textTransform: "uppercase" }}>Gender</div>
+                <div style={{ fontWeight: 700, color: t.text3, fontSize: 10, letterSpacing: "0.06em", textTransform: "uppercase" }}>n</div>
+                <div style={{ fontWeight: 700, color: t.text3, fontSize: 10, letterSpacing: "0.06em", textTransform: "uppercase" }}>Avg</div>
+                <div style={{ fontWeight: 700, color: t.text3, fontSize: 10, letterSpacing: "0.06em", textTransform: "uppercase" }}>Median</div>
+                {genderChartRows.map((row) => (
+                  <Fragment key={row.gender}>
+                    <div style={{ fontWeight: 700, color: GENDER_BAR_COLOR[row.gender] ?? t.text2 }}>{row.gender}</div>
+                    <div style={{ fontFamily: "'DM Mono',monospace", color: t.text2 }}>{row.n}</div>
+                    <div style={{ fontFamily: "'DM Mono',monospace", color: t.text }}>{formatCTC(row.avg)}</div>
+                    <div style={{ fontFamily: "'DM Mono',monospace", color: t.text3 }}>{formatCTC(row.median)}</div>
+                  </Fragment>
+                ))}
+              </div>
+            </div>
+            {manWomanGapPct != null && Number.isFinite(manWomanGapPct) && (
+              <p style={{ fontSize: 11, color: t.text3, margin: "14px 0 0", lineHeight: 1.5 }}>
+                <strong style={{ color: t.text2 }}>Man vs Woman (avg):</strong>{" "}
+                Man average is {manWomanGapPct >= 0 ? "+" : ""}
+                {manWomanGapPct.toFixed(1)}% relative to Woman average (same caveats as the Feed snapshot — not adjusted for role, level, or YoE).
+              </p>
+            )}
+          </>
+        )}
       </ChartCard>
 
       <div style={{ display:"grid", gridTemplateColumns: narrow ? "1fr" : "1fr 1fr", gap:16 }}>
@@ -1409,6 +1653,17 @@ function ChartsSidePanel({ entries }) {
       .slice(0, 8);
   }, [entries]);
 
+  const genderDataset = useMemo(() => buildDatasetGenderStats(entries), [entries]);
+  const manVsWoman = useMemo(() => {
+    const man = genderDataset.find((r) => r.gender === "Man");
+    const woman = genderDataset.find((r) => r.gender === "Woman");
+    let gapPct = null;
+    if (man && woman && woman.avg > 0) {
+      gapPct = ((man.avg - woman.avg) / woman.avg) * 100;
+    }
+    return { man, woman, gapPct };
+  }, [genderDataset]);
+
   const CTipS = ({ active, payload, label }) => {
     if (!active || !payload?.length) return null;
     return (
@@ -1446,6 +1701,52 @@ function ChartsSidePanel({ entries }) {
         </div>
       </div>
       <div style={{ background: t.surf2, border: `1px solid ${t.border}`, borderRadius: 12, padding: "10px 8px" }}>
+        <div style={{ fontSize: 11, fontWeight: 700, color: t.text2, marginBottom: 8 }}>Avg total CTC · Man vs Woman</div>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+          <div
+            style={{
+              background: t.surf,
+              borderRadius: 10,
+              padding: "8px 6px",
+              textAlign: "center",
+              border: `1px solid ${GENDER_BAR_COLOR.Man}33`,
+            }}
+          >
+            <div style={{ fontSize: 9, fontWeight: 800, color: GENDER_BAR_COLOR.Man, letterSpacing: "0.04em" }}>Man</div>
+            <div style={{ fontSize: 14, fontWeight: 800, color: t.text, fontFamily: "'DM Mono',monospace", marginTop: 2 }}>
+              {manVsWoman.man ? formatCTC(manVsWoman.man.avg) : "—"}
+            </div>
+            <div style={{ fontSize: 9, color: t.text3, marginTop: 2 }}>n={manVsWoman.man?.n ?? 0}</div>
+          </div>
+          <div
+            style={{
+              background: t.surf,
+              borderRadius: 10,
+              padding: "8px 6px",
+              textAlign: "center",
+              border: `1px solid ${GENDER_BAR_COLOR.Woman}33`,
+            }}
+          >
+            <div style={{ fontSize: 9, fontWeight: 800, color: GENDER_BAR_COLOR.Woman, letterSpacing: "0.04em" }}>Woman</div>
+            <div style={{ fontSize: 14, fontWeight: 800, color: t.text, fontFamily: "'DM Mono',monospace", marginTop: 2 }}>
+              {manVsWoman.woman ? formatCTC(manVsWoman.woman.avg) : "—"}
+            </div>
+            <div style={{ fontSize: 9, color: t.text3, marginTop: 2 }}>n={manVsWoman.woman?.n ?? 0}</div>
+          </div>
+        </div>
+        {manVsWoman.gapPct != null && Number.isFinite(manVsWoman.gapPct) && (
+          <div style={{ fontSize: 9, color: t.text3, marginTop: 8, lineHeight: 1.35, textAlign: "center" }}>
+            Man avg {manVsWoman.gapPct >= 0 ? "+" : ""}
+            {manVsWoman.gapPct.toFixed(1)}% vs Woman avg <span style={{ opacity: 0.85 }}>(same dataset; not causal)</span>
+          </div>
+        )}
+        {(manVsWoman.man || manVsWoman.woman) && (!manVsWoman.man || !manVsWoman.woman) && (
+          <div style={{ fontSize: 9, color: t.text3, marginTop: 6, lineHeight: 1.35 }}>
+            Need both Man and Woman buckets to compare. Other genders in Charts tab.
+          </div>
+        )}
+      </div>
+      <div style={{ background: t.surf2, border: `1px solid ${t.border}`, borderRadius: 12, padding: "10px 8px" }}>
         <div style={{ fontSize: 11, fontWeight: 700, color: t.text2, marginBottom: 6 }}>Entries · industry</div>
         <div style={{ width: "100%", height: hPie, minHeight: hPie }}>
           <ResponsiveContainer width="100%" height={hPie}>
@@ -1478,7 +1779,7 @@ function ChartsSidePanel({ entries }) {
         </div>
       </div>
       <p style={{ fontSize: 10, color: t.text3, margin: 0, lineHeight: 1.4 }}>
-        Open the <strong style={{ color: t.text2 }}>Charts</strong> tab for the full analytics page — this panel is a compact snapshot.
+        Open the <strong style={{ color: t.text2 }}>Charts</strong> tab for pay-by-gender detail and full analytics — this panel is a compact snapshot.
       </p>
     </div>
   );
@@ -1533,7 +1834,7 @@ function KnowYourWorthSection({ entries, sidebarMode = false }) {
     return [...s].sort((a, b) => a.localeCompare(b));
   }, [entries, activeCompany]);
 
-  const drilldownRows = useMemo(() => {
+  const companyFilterRows = useMemo(() => {
     if (!activeCompany) return [];
     let rows = entries.filter((e) => e.company === activeCompany);
     if (compareBy === "experience") {
@@ -1546,11 +1847,36 @@ function KnowYourWorthSection({ entries, sidebarMode = false }) {
         rows = rows.filter((e) => foldCase(e.level || "") === foldCase(levelSelect));
       }
     }
-    return rows
+    return rows;
+  }, [entries, activeCompany, compareBy, yoeBucket, levelSelect, levelCustom]);
+
+  const drilldownRows = useMemo(() => {
+    return companyFilterRows
+      .slice()
       .sort((a, b) => totalCTC(b) - totalCTC(a))
       .slice(0, 25)
       .map((e, i) => ({ name: `#${i + 1}`, value: totalCTC(e) }));
-  }, [entries, activeCompany, compareBy, yoeBucket, levelSelect, levelCustom]);
+  }, [companyFilterRows]);
+
+  const genderParityRows = useMemo(() => {
+    if (!activeCompany || companyFilterRows.length === 0) return [];
+    const buckets = {};
+    for (const e of companyFilterRows) {
+      const raw = typeof e.gender === "string" ? e.gender.trim() : "";
+      const key = GENDER_OPTS.includes(raw) ? raw : "Not stated";
+      if (!buckets[key]) buckets[key] = { sum: 0, n: 0 };
+      buckets[key].sum += totalCTC(e);
+      buckets[key].n += 1;
+    }
+    const order = [...GENDER_OPTS, "Not stated"];
+    return order
+      .filter((k) => buckets[k] && buckets[k].n > 0)
+      .map((gender) => ({
+        gender,
+        avg: Math.round(buckets[gender].sum / buckets[gender].n),
+        n: buckets[gender].n,
+      }));
+  }, [activeCompany, companyFilterRows]);
 
   const axisKY = { fontSize: sidebarMode || narrow ? 9 : 10, fill: t.text3, fontFamily: "'DM Sans',sans-serif" };
 
@@ -1568,7 +1894,7 @@ function KnowYourWorthSection({ entries, sidebarMode = false }) {
     else if (levelSelect === LEVEL_CUSTOM_KYW) parts.push(levelCustom.trim() ? `Level contains “${levelCustom.trim()}”` : "Any level");
     else if (levelSelect !== "any") parts.push(`Level ${levelSelect}`);
     else parts.push("All levels");
-    const n = drilldownRows.length;
+    const n = companyFilterRows.length;
     parts.push(`${n} salary snapshot${n !== 1 ? "s" : ""}`);
     subtitleDrill = parts.join(" · ");
   }
@@ -1824,29 +2150,90 @@ function KnowYourWorthSection({ entries, sidebarMode = false }) {
             </div>
           )}
 
-          {activeCompany && drilldownRows.length > 0 && (
-            <div style={{ width: "100%", height: Math.min(sidebarMode ? 300 : 420, 120 + drilldownRows.length * (sidebarMode ? 22 : narrow ? 26 : 28)), minHeight: 140 }}>
-              <ResponsiveContainer width="100%" height="100%">
-              <BarChart layout="vertical" data={drilldownRows} margin={{ left: 4, right: 12, top: 8, bottom: 8 }}>
-                <XAxis type="number" tickFormatter={formatL} tick={axisKY} axisLine={false} tickLine={false} />
-                <YAxis type="category" dataKey="name" tick={axisKY} axisLine={false} tickLine={false} width={36} />
-                <Tooltip
-                  formatter={(v) => formatCTC(v)}
-                  contentStyle={{
-                    background: t.surf,
-                    border: `1px solid ${t.border}`,
-                    borderRadius: 8,
-                    fontFamily: "'DM Sans',sans-serif",
-                    fontSize: 12,
+          {activeCompany && companyFilterRows.length > 0 && (
+            <>
+              <div style={{ width: "100%", height: Math.min(sidebarMode ? 300 : 420, 120 + drilldownRows.length * (sidebarMode ? 22 : narrow ? 26 : 28)), minHeight: 140 }}>
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart layout="vertical" data={drilldownRows} margin={{ left: 4, right: 12, top: 8, bottom: 8 }}>
+                    <XAxis type="number" tickFormatter={formatL} tick={axisKY} axisLine={false} tickLine={false} />
+                    <YAxis type="category" dataKey="name" tick={axisKY} axisLine={false} tickLine={false} width={36} />
+                    <Tooltip
+                      formatter={(v) => formatCTC(v)}
+                      contentStyle={{
+                        background: t.surf,
+                        border: `1px solid ${t.border}`,
+                        borderRadius: 8,
+                        fontFamily: "'DM Sans',sans-serif",
+                        fontSize: 12,
+                      }}
+                    />
+                    <Bar dataKey="value" name="Total CTC" fill={accent(entries.find((e) => e.company === activeCompany)?.industry || "")} radius={[0, 6, 6, 0]} barSize={sidebarMode ? 14 : narrow ? 16 : 20} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+              {genderParityRows.length > 0 && (
+                <div
+                  style={{
+                    marginTop: 18,
+                    paddingTop: 18,
+                    borderTop: `1px solid ${t.border}`,
                   }}
-                />
-                <Bar dataKey="value" name="Total CTC" fill={accent(entries.find((e) => e.company === activeCompany)?.industry || "")} radius={[0, 6, 6, 0]} barSize={sidebarMode ? 14 : narrow ? 16 : 20} />
-              </BarChart>
-            </ResponsiveContainer>
-            </div>
+                >
+                  <div style={{ fontSize: 12, fontWeight: 800, color: t.text, marginBottom: 4 }}>Pay by gender (same filters)</div>
+                  <p style={{ fontSize: 11, color: t.text3, margin: "0 0 12px", lineHeight: 1.45 }}>
+                    Average total CTC per self-reported gender for this company and experience / level filter — small samples skew bars.
+                  </p>
+                  <div style={{ width: "100%", height: sidebarMode ? 200 : narrow ? 240 : 280, minHeight: 160 }}>
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart data={genderParityRows} margin={{ left: 4, right: 8, top: 8, bottom: sidebarMode || narrow ? 52 : 28 }}>
+                        <XAxis
+                          type="category"
+                          dataKey="gender"
+                          tick={{ ...axisKY, fill: t.text2 }}
+                          axisLine={false}
+                          tickLine={false}
+                          interval={0}
+                          angle={sidebarMode || narrow ? -28 : 0}
+                          textAnchor={sidebarMode || narrow ? "end" : "middle"}
+                          height={sidebarMode || narrow ? 56 : 36}
+                        />
+                        <YAxis type="number" tickFormatter={formatL} tick={axisKY} axisLine={false} tickLine={false} width={44} />
+                        <Tooltip
+                          content={({ active, payload }) => {
+                            if (!active || !payload?.length) return null;
+                            const row = payload[0]?.payload;
+                            return (
+                              <div
+                                style={{
+                                  background: t.surf,
+                                  border: `1px solid ${t.border}`,
+                                  borderRadius: 8,
+                                  padding: "10px 12px",
+                                  fontSize: 12,
+                                  fontFamily: "'DM Sans',sans-serif",
+                                }}
+                              >
+                                <div style={{ fontWeight: 700, color: t.text, marginBottom: 4 }}>{row.gender}</div>
+                                <div style={{ color: t.orange, fontFamily: "'DM Mono',monospace" }}>{formatCTC(row.avg)} avg</div>
+                                <div style={{ fontSize: 11, color: t.text3 }}>{row.n} snapshot{row.n !== 1 ? "s" : ""}</div>
+                              </div>
+                            );
+                          }}
+                        />
+                        <Bar dataKey="avg" name="Avg total CTC" radius={[6, 6, 0, 0]} maxBarSize={sidebarMode ? 44 : 56}>
+                          {genderParityRows.map((row) => (
+                            <Cell key={row.gender} fill={GENDER_BAR_COLOR[row.gender] ?? "#9CA3AF"} />
+                          ))}
+                        </Bar>
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
+                </div>
+              )}
+            </>
           )}
 
-          {activeCompany && drilldownRows.length === 0 && (
+          {activeCompany && companyFilterRows.length === 0 && (
             <div style={{ textAlign: "center", padding: "36px 16px", color: t.text3, fontSize: 14 }}>
               No salaries match this company and filter yet. Try another band, level, or pick a different company.
             </div>
