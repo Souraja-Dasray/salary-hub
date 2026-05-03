@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect, createContext, useContext } from "react";
+import { useState, useMemo, useEffect, useLayoutEffect, useRef, createContext, useContext } from "react";
 import { createClient } from "@supabase/supabase-js";
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer,
@@ -1871,7 +1871,12 @@ export default function App() {
   const [entries,   setEntries]   = useState(SEED);
   const [tab,       setTab]       = useState("Feed");
   const [showForm,  setShowForm]  = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const headerRef = useRef(null);
+  const [headerHeight, setHeaderHeight] = useState(56);
   const narrow = useMediaQuery("(max-width: 640px)");
+  /** Very narrow phones: compact header so actions are not clipped. */
+  const tightHeader = useMediaQuery("(max-width: 430px)");
   /** Tablet/desktop: Feed tab uses 3-column dashboard; Charts / Leaderboard tabs show full pages. */
   const wideDashboard = useMediaQuery("(min-width: 768px)");
 
@@ -1882,6 +1887,42 @@ export default function App() {
     document.documentElement.style.backgroundColor = bg;
     document.body.style.backgroundColor = bg;
   }, [dark]);
+
+  useLayoutEffect(() => {
+    const el = headerRef.current;
+    if (!el) return undefined;
+    const sync = () => setHeaderHeight(el.offsetHeight);
+    sync();
+    const ro = typeof ResizeObserver !== "undefined" ? new ResizeObserver(sync) : null;
+    if (ro) ro.observe(el);
+    window.addEventListener("resize", sync);
+    return () => {
+      window.removeEventListener("resize", sync);
+      if (ro) ro.disconnect();
+    };
+  }, [narrow, tightHeader, mobileMenuOpen]);
+
+  useEffect(() => {
+    if (!narrow) setMobileMenuOpen(false);
+  }, [narrow]);
+
+  useEffect(() => {
+    if (!narrow || !mobileMenuOpen) return undefined;
+    const onKey = (e) => {
+      if (e.key === "Escape") setMobileMenuOpen(false);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [narrow, mobileMenuOpen]);
+
+  useEffect(() => {
+    if (!narrow || !mobileMenuOpen) return undefined;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = prev;
+    };
+  }, [narrow, mobileMenuOpen]);
 
   useEffect(() => {
     if (!supabase) return undefined;
@@ -1930,22 +1971,29 @@ export default function App() {
 
   const hx = narrow ? 12 : 24;
   const shellPad = narrow ? 12 : 24;
+  const headerGap = tightHeader ? 6 : 10;
+  const headerActionGap = tightHeader ? 4 : narrow ? 6 : 10;
 
   return (
     <ThemeCtx.Provider value={{ dark, toggle: () => setDark(d => !d) }}>
       <div style={{ minHeight:"100vh", width:"100%", boxSizing:"border-box", background:t.bg, fontFamily:"'DM Sans',sans-serif", color:t.text, transition:"background 0.25s, color 0.25s" }}>
 
         {/* ── Header ── */}
-        <header style={{
-          background:t.surf, borderBottom:`1px solid ${t.border}`,
-          padding: narrow ? "10px 12px" : "0 24px",
-          display:"flex", alignItems:"center", justifyContent:"space-between",
-          gap:10,
-          height:56, position:"sticky", top:0, zIndex:100,
-          boxShadow:`0 1px 12px rgba(0,0,0,${dark?0.4:0.06})`, transition:"background 0.25s, border-color 0.25s",
-        }}>
-          <div style={{ display:"flex", alignItems:"center", gap:8, flexShrink:0, minWidth:0 }}>
-            <Logo size={narrow ? 18 : 20} />
+        <header
+          ref={headerRef}
+          style={{
+            background:t.surf, borderBottom:`1px solid ${t.border}`,
+            padding: tightHeader ? "8px 8px" : narrow ? "10px 12px" : "0 24px",
+            display:"flex", alignItems:"center", justifyContent:"space-between",
+            gap: headerGap,
+            minHeight: tightHeader ? 48 : 56,
+            position:"sticky", top:0, zIndex:100,
+            boxSizing:"border-box",
+            boxShadow:`0 1px 12px rgba(0,0,0,${dark?0.4:0.06})`, transition:"background 0.25s, border-color 0.25s",
+          }}
+        >
+          <div style={{ display:"flex", alignItems:"center", gap: tightHeader ? 6 : 8, flexShrink: 1, minWidth: 0 }}>
+            <Logo size={tightHeader ? 16 : narrow ? 18 : 20} />
             <Beta />
             {narrow && (
               <span style={{ fontSize:10, color:t.text2, whiteSpace:"nowrap", opacity:0.9 }}>
@@ -1953,47 +2001,160 @@ export default function App() {
               </span>
             )}
           </div>
-          <div style={{ display:"flex", alignItems:"center", gap:narrow ? 6 : 10, flexShrink:0 }}>
-            <a
-              href={feedbackHref()}
-              {...(feedbackOpensInNewTab() ? { target: "_blank", rel: "noopener noreferrer" } : {})}
-              aria-label={
-                feedbackOpensInNewTab()
-                  ? "Send feedback (opens Google Form in a new tab)"
-                  : "Send feedback (opens your email app)"
-              }
-              style={{
-                background:"transparent",
-                border:`1px solid ${t.border}`,
-                borderRadius:20,
-                padding: narrow ? "6px 10px" : "6px 14px",
-                fontSize:narrow ? 12 : 13,
-                fontWeight:600,
-                color:t.text2,
-                fontFamily:"'DM Sans',sans-serif",
-                textDecoration:"none",
-                whiteSpace:"nowrap",
-                display:"flex",
-                alignItems:"center",
-                gap:5,
-              }}
-            >
-              💬 {narrow ? "Feedback" : "Send feedback"}
-            </a>
+          <div style={{ display:"flex", alignItems:"center", gap: headerActionGap, flexShrink: 0 }}>
             {!narrow && (
-              <div style={{ fontSize:11, color:t.text2, display:"flex", alignItems:"center", gap:5 }}>
-                <span style={{ width:7, height:7, borderRadius:"50%", background:t.green, display:"inline-block", boxShadow:`0 0 6px ${t.green}` }} />
-                {entries.length} salaries shared
-              </div>
+              <>
+                <a
+                  href={feedbackHref()}
+                  {...(feedbackOpensInNewTab() ? { target: "_blank", rel: "noopener noreferrer" } : {})}
+                  aria-label={
+                    feedbackOpensInNewTab()
+                      ? "Send feedback (opens Google Form in a new tab)"
+                      : "Send feedback (opens your email app)"
+                  }
+                  style={{
+                    background:"transparent",
+                    border:`1px solid ${t.border}`,
+                    borderRadius:20,
+                    padding:"6px 14px",
+                    fontSize:13,
+                    fontWeight:600,
+                    color:t.text2,
+                    fontFamily:"'DM Sans',sans-serif",
+                    textDecoration:"none",
+                    whiteSpace:"nowrap",
+                    display:"flex",
+                    alignItems:"center",
+                    gap:5,
+                  }}
+                >
+                  💬 Send feedback
+                </a>
+                <div style={{ fontSize:11, color:t.text2, display:"flex", alignItems:"center", gap:5 }}>
+                  <span style={{ width:7, height:7, borderRadius:"50%", background:t.green, display:"inline-block", boxShadow:`0 0 6px ${t.green}` }} />
+                  {entries.length} salaries shared
+                </div>
+                <button type="button" onClick={() => setDark(d => !d)} aria-label={dark ? "Switch to light mode" : "Switch to dark mode"} style={{ background:t.surf2, border:`1px solid ${t.border}`, borderRadius:20, padding:"6px 12px", cursor:"pointer", fontSize:13, color:t.text2, fontFamily:"'DM Sans',sans-serif", display:"flex", alignItems:"center", gap:5 }}>
+                  {dark ? "☀️" : "🌙"} {dark ? "Light" : "Dark"}
+                </button>
+              </>
             )}
-            <button type="button" onClick={() => setDark(d => !d)} style={{ background:t.surf2, border:`1px solid ${t.border}`, borderRadius:20, padding: narrow ? "6px 10px" : "6px 12px", cursor:"pointer", fontSize:narrow ? 12 : 13, color:t.text2, fontFamily:"'DM Sans',sans-serif", display:"flex", alignItems:"center", gap:5 }}>
-              {dark ? "☀️" : "🌙"} {!narrow && (dark ? "Light" : "Dark")}
-            </button>
-            <button type="button" onClick={() => setShowForm(true)} style={{ background:t.orange, color:"#0E0E0E", border:"none", borderRadius:10, padding: narrow ? "8px 12px" : "9px 18px", fontSize:narrow ? 12 : 13, fontWeight:800, cursor:"pointer", fontFamily:"'DM Sans',sans-serif", boxShadow:`0 0 16px ${t.orange}44`, whiteSpace:"nowrap" }}>
+            {narrow && (
+              <button
+                type="button"
+                id="mobile-menu-trigger"
+                aria-expanded={mobileMenuOpen}
+                aria-controls="mobile-header-menu"
+                aria-label={mobileMenuOpen ? "Close menu" : "Open menu — feedback and theme"}
+                onClick={() => setMobileMenuOpen((o) => !o)}
+                style={{
+                  background: mobileMenuOpen ? `${t.orange}22` : t.surf2,
+                  border:`1px solid ${mobileMenuOpen ? t.orange : t.border}`,
+                  borderRadius:20,
+                  padding: tightHeader ? "6px 10px" : "7px 12px",
+                  cursor:"pointer",
+                  fontSize: tightHeader ? 13 : 13,
+                  fontWeight:700,
+                  color:t.text2,
+                  fontFamily:"'DM Sans',sans-serif",
+                  display:"flex",
+                  alignItems:"center",
+                  gap:6,
+                  flexShrink: 0,
+                }}
+              >
+                <span aria-hidden style={{ fontSize:15 }}>{mobileMenuOpen ? "✕" : "☰"}</span>
+                {!tightHeader && <span>{mobileMenuOpen ? "Close" : "Menu"}</span>}
+              </button>
+            )}
+            <button type="button" onClick={() => setShowForm(true)} aria-label="Share a salary" style={{ background:t.orange, color:"#0E0E0E", border:"none", borderRadius:10, padding: narrow ? "8px 12px" : "9px 18px", fontSize:narrow ? 12 : 13, fontWeight:800, cursor:"pointer", fontFamily:"'DM Sans',sans-serif", boxShadow:`0 0 16px ${t.orange}44`, whiteSpace:"nowrap", flexShrink: 0 }}>
               {narrow ? "+ Share" : "+ Share Salary"}
             </button>
           </div>
         </header>
+
+        {/* Mobile: feedback + theme (moved out of crowded header) */}
+        {narrow && mobileMenuOpen && (
+          <>
+            <div
+              role="presentation"
+              aria-hidden
+              onClick={() => setMobileMenuOpen(false)}
+              style={{
+                position:"fixed",
+                top: headerHeight,
+                left:0,
+                right:0,
+                bottom:0,
+                background:"rgba(0,0,0,0.48)",
+                zIndex:98,
+              }}
+            />
+            <nav
+              id="mobile-header-menu"
+              aria-label="Feedback and appearance"
+              style={{
+                position:"fixed",
+                top: headerHeight,
+                left:0,
+                right:0,
+                zIndex:99,
+                background:t.surf,
+                borderBottom:`1px solid ${t.border}`,
+                padding:"14px 16px 16px",
+                display:"flex",
+                flexDirection:"column",
+                gap:10,
+                boxShadow:`0 16px 48px rgba(0,0,0,${dark ? 0.45 : 0.12})`,
+              }}
+            >
+              <a
+                href={feedbackHref()}
+                {...(feedbackOpensInNewTab() ? { target: "_blank", rel: "noopener noreferrer" } : {})}
+                onClick={() => setMobileMenuOpen(false)}
+                style={{
+                  display:"flex",
+                  alignItems:"center",
+                  gap:10,
+                  padding:"14px 16px",
+                  borderRadius:12,
+                  background:t.surf2,
+                  border:`1px solid ${t.border}`,
+                  fontSize:14,
+                  fontWeight:700,
+                  color:t.text,
+                  fontFamily:"'DM Sans',sans-serif",
+                  textDecoration:"none",
+                }}
+              >
+                <span aria-hidden>💬</span> Send feedback
+              </a>
+              <button
+                type="button"
+                onClick={() => setDark((d) => !d)}
+                style={{
+                  display:"flex",
+                  alignItems:"center",
+                  justifyContent:"flex-start",
+                  gap:10,
+                  padding:"14px 16px",
+                  borderRadius:12,
+                  background:t.surf2,
+                  border:`1px solid ${t.border}`,
+                  fontSize:14,
+                  fontWeight:700,
+                  color:t.text,
+                  fontFamily:"'DM Sans',sans-serif",
+                  cursor:"pointer",
+                  textAlign:"left",
+                }}
+              >
+                <span aria-hidden>{dark ? "☀️" : "🌙"}</span>
+                {dark ? "Switch to light mode" : "Switch to dark mode"}
+              </button>
+            </nav>
+          </>
+        )}
 
         {/* ── Hero ── */}
         <div style={{ background: dark ? "#111111" : "#FFF8F3", borderBottom:`1px solid ${t.border}`, padding: narrow ? "24px 12px 20px" : "32px 24px 26px", transition:"background 0.25s" }}>
